@@ -1,0 +1,13 @@
+# GPU MachineSet Parameters for AWS g4dn.xlarge
+# Edit these values to customize your GPU nodes
+
+# Instance configuration
+instanceType: g4dn.xlarge         # NVIDIA T4 GPU
+replicas: 1                       # Number of GPU nodes
+
+# GPU details for this instance type:
+# - 1x NVIDIA T4 (16GB GDDR6)
+# - 4 vCPUs
+# - 16 GB RAM
+# - Cost: ~$0.53/hour (on-demand, us-east-1)
+# - Good for: Small to medium models, cost-effective inference, embedding models

@@ -1,0 +1,77 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  name: {{ .Values.clusterName }}-gpu-{{ .Values.machineNameSuffix }}-{{ .Values.availabilityZone }}
+  namespace: openshift-machine-api
+  labels:
+    machine.openshift.io/cluster-api-cluster: {{ .Values.clusterName }}
+  # annotations:
+  #   machine.openshift.io/GPU: "{{ .Values.gpu.count }}"
+  #   machine.openshift.io/memoryMb: "{{ .Values.gpu.memoryMb }}"
+  #   machine.openshift.io/vCPU: "{{ .Values.gpu.vCPU }}"
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: {{ .Values.clusterName }}
+      machine.openshift.io/cluster-api-machineset: {{ .Values.clusterName }}-gpu-{{ .Values.machineNameSuffix }}-{{ .Values.availabilityZone }}
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: {{ .Values.clusterName }}
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: {{ .Values.clusterName }}-gpu-{{ .Values.machineNameSuffix }}-{{ .Values.availabilityZone }}
+        gpu-instance-type: {{ .Values.instanceType }}
+        gpu-type-suffix: {{ .Values.machineNameSuffix }}
+    spec:
+      metadata: {}
+      taints:
+        {{- toYaml .Values.taints | nindent 8 }}
+      providerSpec:
+        value:
+          kind: AWSMachineProviderConfig
+          apiVersion: machine.openshift.io/v1beta1
+          instanceType: {{ .Values.instanceType }}
+          ami:
+            id: {{ .Values.amiId | quote }}
+          blockDevices:
+            - ebs:
+                encrypted: true
+                volumeSize: {{ .Values.rootVolume.size }}
+                volumeType: {{ .Values.rootVolume.type }}
+                {{- if eq .Values.rootVolume.type "gp3" }}
+                iops: {{ .Values.rootVolume.iops }}
+                {{- else }}
+                iops: 0
+                {{- end }}
+          placement:
+            availabilityZone: {{ .Values.availabilityZone }}
+            region: {{ .Values.region }}
+          securityGroups:
+            - filters:
+                - name: tag:Name
+                  values:
+                    - "{{ .Values.infraID }}-node"
+            - filters:
+                - name: tag:Name
+                  values:
+                    - "{{ .Values.infraID }}-lb"
+          subnet:
+            filters:
+              - name: tag:Name
+                values:
+                  - "{{ .Values.infraID }}-subnet-private-{{ .Values.availabilityZone }}"
+          iamInstanceProfile:
+            id: "{{ .Values.infraID }}-worker-profile"
+          tags:
+            - name: kubernetes.io/cluster/{{ .Values.infraID }}
+              value: owned
+            - name: gpu-node
+              value: "true"
+            - name: gpu-instance-type
+              value: {{ .Values.instanceType }}
+            - name: gpu-type
+              value: {{ .Values.machineNameSuffix }}
+          userDataSecret:
+            name: worker-user-data

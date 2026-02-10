@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gpu-machineset-aws-g6
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/name: gpu-machineset-aws
+    app.kubernetes.io/part-of: openshift-infra
+    app.kubernetes.io/component: infrastructure
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dandawg/openshift-infra.git
+    targetRevision: main
+    path: infra/gpu-machineset/aws/helm
+    helm:
+      valueFiles:
+        - values-g6-2xlarge.yaml
+      parameters:
+        - name: clusterName
+          value: REPLACE_ME  # Set via deploy.sh script
+        - name: region
+          value: REPLACE_ME
+        - name: availabilityZone
+          value: REPLACE_ME
+        - name: infraID
+          value: REPLACE_ME
+        - name: amiId
+          value: REPLACE_ME
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-machine-api
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  ignoreDifferences:
+    - group: machine.openshift.io
+      kind: MachineSet
+      jsonPointers:
+        - /spec/replicas
+        - /spec/template/spec/providerSpec/value/blockDevices/0/ebs/volumeSize

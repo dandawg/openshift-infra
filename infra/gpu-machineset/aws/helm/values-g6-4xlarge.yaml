@@ -1,0 +1,18 @@
+# AWS g6.4xlarge GPU Configuration
+# 1x NVIDIA L4 (24GB GDDR6)
+# 16 vCPUs, 64 GB RAM
+# Cost: ~$2.15/hour (on-demand, us-east-1)
+
+machineNameSuffix: "g6-4x"
+instanceType: g6.4xlarge
+replicas: 1
+
+rootVolume:
+  size: 120
+  type: gp3
+  iops: 3000
+
+gpu:
+  count: 1
+  memoryMb: 65536
+  vCPU: 16

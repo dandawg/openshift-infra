@@ -1,0 +1,34 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  name: CLUSTER_NAME-GPU_TYPE-AVAILABILITY_ZONE
+  namespace: openshift-machine-api
+  labels:
+    machine.openshift.io/cluster-api-cluster: CLUSTER_NAME
+spec:
+  replicas: REPLICA_COUNT
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: CLUSTER_NAME
+      machine.openshift.io/cluster-api-machineset: CLUSTER_NAME-GPU_TYPE-AVAILABILITY_ZONE
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: CLUSTER_NAME
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: CLUSTER_NAME-GPU_TYPE-AVAILABILITY_ZONE
+        node-role.kubernetes.io/gpu: ""
+    spec:
+      metadata:
+        labels:
+          node-role.kubernetes.io/gpu: ""
+          nvidia.com/gpu.present: "true"
+      taints:
+        - key: nvidia.com/gpu
+          value: "true"
+          effect: NoSchedule
+      providerSpec:
+        value:
+          # Provider-specific configuration will be added by overlays
+          kind: PROVIDER_KIND
