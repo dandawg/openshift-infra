@@ -29,6 +29,8 @@ spec:
         labels:
           node-role.kubernetes.io/gpu: ""
           nvidia.com/gpu.present: "true"
+          gpu-instance-type: {{ .Values.instanceType }}
+          gpu-type-suffix: {{ .Values.machineNameSuffix }}
       taints:
         {{- toYaml .Values.taints | nindent 8 }}
       providerSpec:
