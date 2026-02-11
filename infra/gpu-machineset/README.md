@@ -50,7 +50,7 @@ For clusters starting with only master nodes, deploy CPU workers first:
 # Deploy with custom settings
 INSTANCE_TYPE=m6a.4xlarge \
 ROOT_VOLUME_SIZE=150 \
-REPLICA_COUNT=2 \
+REPLICA_COUNT=1 \
 ./infra/gpu-machineset/aws/deploy-cpu-worker.sh
 ```
 

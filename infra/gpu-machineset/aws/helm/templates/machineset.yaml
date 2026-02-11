@@ -25,7 +25,10 @@ spec:
         gpu-instance-type: {{ .Values.instanceType }}
         gpu-type-suffix: {{ .Values.machineNameSuffix }}
     spec:
-      metadata: {}
+      metadata:
+        labels:
+          node-role.kubernetes.io/gpu: ""
+          nvidia.com/gpu.present: "true"
       taints:
         {{- toYaml .Values.taints | nindent 8 }}
       providerSpec:
