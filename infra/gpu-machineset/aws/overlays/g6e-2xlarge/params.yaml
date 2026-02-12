@@ -1,0 +1,13 @@
+# GPU MachineSet Parameters for AWS g6e.2xlarge
+# Edit these values to customize your GPU nodes
+
+# Instance configuration
+instanceType: g6e.2xlarge        # NVIDIA L40S GPU
+replicas: 1                      # Number of GPU nodes
+
+# GPU details for this instance type:
+# - 1x NVIDIA L40S (48GB GDDR6)
+# - 8 vCPUs
+# - 64 GB RAM
+# - Cost: ~$2.24/hour (on-demand, us-east-1)
+# - Good for: AI inference, 3D graphics, high-memory GPU workloads
