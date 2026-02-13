@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cluster-discovery
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/name: cluster-discovery
+    app.kubernetes.io/part-of: openshift-infra
+    app.kubernetes.io/component: infrastructure
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dandawg/openshift-infra.git
+    targetRevision: main
+    path: infra/cluster-discovery
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-machine-api
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m

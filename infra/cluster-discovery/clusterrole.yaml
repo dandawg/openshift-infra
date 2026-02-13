@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-info-reader
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+rules:
+  # Read cluster infrastructure details
+  - apiGroups: ["config.openshift.io"]
+    resources: ["infrastructures"]
+    verbs: ["get", "list"]
+  
+  # Read machine and machineset information
+  - apiGroups: ["machine.openshift.io"]
+    resources: ["machines", "machinesets"]
+    verbs: ["get", "list"]

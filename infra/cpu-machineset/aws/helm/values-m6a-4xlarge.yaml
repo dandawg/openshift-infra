@@ -1,0 +1,9 @@
+# CPU Worker MachineSet Configuration for m6a.4xlarge
+instanceType: m6a.4xlarge
+machineNameSuffix: m6a-4x
+replicas: 1
+
+rootVolume:
+  size: 120
+  type: gp3
+  iops: 3000

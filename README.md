@@ -5,10 +5,12 @@ Infrastructure-level components for OpenShift clusters, focused on GPU-enabled n
 ## Overview
 
 This repository provides production-ready infrastructure components for OpenShift:
+- **Cluster Discovery**: Automated job to gather cluster information for GitOps deployments
 - **GPU MachineSets**: Automated deployment of GPU-enabled nodes on AWS
+- **CPU MachineSets**: Automated deployment of high-capacity CPU worker nodes on AWS
 - **Multi-GPU Support**: Deploy different GPU instance types (g4dn, g6) simultaneously
 - **GitOps Ready**: ArgoCD Application manifests for automated deployment
-- **Cost Optimized**: Choose the right GPU instance type for your workload
+- **Cost Optimized**: Choose the right instance type for your workload
 
 ## Repository Structure
 
@@ -17,17 +19,26 @@ openshift-infra/
 ├── README.md              # This file
 ├── gitops/               # ArgoCD Application manifests
 │   └── infra/           # Infrastructure components
+│       ├── cluster-discovery.yaml
 │       ├── gpu-machineset-aws-g4dn-xlarge.yaml
 │       ├── gpu-machineset-aws-g6.yaml
-│       └── gpu-machineset-aws-g6-4xlarge.yaml
+│       ├── gpu-machineset-aws-g6-4xlarge.yaml
+│       └── cpu-machineset-aws-m6a-4xlarge.yaml
 └── infra/               # Infrastructure component definitions
-    └── gpu-machineset/  # GPU node templates
-        ├── README.md    # GPU MachineSets documentation
-        ├── base/        # Base MachineSet template
+    ├── cluster-discovery/  # Cluster info discovery job
+    │   ├── kustomization.yaml
+    │   ├── job.yaml
+    │   └── rbac files...
+    ├── gpu-machineset/  # GPU node templates
+    │   ├── README.md    # GPU MachineSets documentation
+    │   ├── base/        # Base MachineSet template
+    │   └── aws/         # AWS-specific configurations
+    │       ├── deploy.sh       # Automated deployment script
+    │       ├── helm/           # Helm chart for ArgoCD
+    │       └── overlays/       # Kustomize overlays
+    └── cpu-machineset/  # CPU worker node templates
         └── aws/         # AWS-specific configurations
-            ├── deploy.sh       # Automated deployment script
-            ├── helm/           # Helm chart for ArgoCD
-            └── overlays/       # Kustomize overlays
+            └── helm/           # Helm chart for ArgoCD
 ```
 
 ## Prerequisites
@@ -35,7 +46,56 @@ openshift-infra/
 - **OpenShift 4.16+** on AWS with cluster-admin access
 - **OpenShift GitOps** (ArgoCD) installed
 - **`oc` CLI** and **`argocd` CLI** installed
-- **AWS quota** for GPU instances in your region
+- **AWS quota** for GPU and CPU instances in your region
+
+## Components
+
+### Cluster Discovery
+
+Automated Kubernetes Job that discovers AWS cluster information and creates a ConfigMap for use by other GitOps applications.
+
+**What it discovers:**
+- Cluster name and infrastructure ID
+- AWS region and availability zone
+- AMI ID for worker nodes
+
+**Usage:**
+```bash
+# Standalone deployment
+oc apply -f gitops/infra/cluster-discovery.yaml
+
+# Or reference in ArgoCD multi-source applications
+```
+
+The cluster-discovery job runs as a PreSync hook (Wave 0) and creates a ConfigMap that other applications can reference for cluster-specific parameters.
+
+### GPU MachineSets
+
+See the [GPU MachineSets Quick Start](#quick-start-deploy-gpu-nodes) below.
+
+### CPU Worker MachineSets
+
+High-capacity CPU worker nodes for workloads that need more compute but not GPUs (e.g., RHOAI platform pods, data preprocessing).
+
+**Available CPU instance types:**
+- **m6a.4xlarge**: 16 vCPU, 64GB RAM, AMD EPYC (~$0.69/hr)
+- **m6i.4xlarge**: 16 vCPU, 64GB RAM, Intel Xeon (~$0.77/hr)
+
+**Deploy CPU workers:**
+```bash
+# Deploy via GitOps (manual parameter setup required)
+oc apply -f gitops/infra/cpu-machineset-aws-m6a-4xlarge.yaml
+
+# Then set cluster parameters using argocd CLI
+CLUSTER_NAME=$(oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')
+REGION=$(oc get infrastructure cluster -o jsonpath='{.status.platformStatus.aws.region}')
+# ... etc
+
+argocd app set cpu-machineset-aws-m6a-4xlarge \
+  -p clusterName="$CLUSTER_NAME" \
+  -p region="$REGION" \
+  # ... etc
+```
 
 ## Quick Start: Deploy GPU Nodes
 
@@ -242,8 +302,13 @@ INSTANCE_TYPE=g4dn.xlarge ./infra/gpu-machineset/aws/deploy.sh
 
 ## Related Repositories
 
+This repository is designed to work both:
+1. **Standalone** - Deploy individual infrastructure components as needed
+2. **As a dependency** - Referenced by other GitOps repositories (e.g., rhoai-app-demos-new)
+
+Related repositories:
 - [rhoai-deploy](https://github.com/redhat-ai-americas/rhoai-deploy) - Red Hat OpenShift AI platform deployment
-- [rhoai-app-demos](https://github.com/redhat-ai-americas/rhoai-app-demos) - RHOAI application demos and examples
+- [rhoai-app-demos-new](https://github.com/redhat-ai-americas/rhoai-app-demos-new) - RHOAI application demos (references this repo for cluster-discovery and node provisioning)
 
 ## Contributing
 

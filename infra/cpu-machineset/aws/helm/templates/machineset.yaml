@@ -1,39 +1,33 @@
 apiVersion: machine.openshift.io/v1beta1
 kind: MachineSet
 metadata:
-  name: {{ .Values.clusterName }}-gpu-{{ .Values.machineNameSuffix }}-{{ .Values.availabilityZone }}
+  name: {{ .Values.clusterName }}-worker-{{ .Values.machineNameSuffix }}-{{ .Values.availabilityZone }}
   namespace: openshift-machine-api
   labels:
     machine.openshift.io/cluster-api-cluster: {{ .Values.clusterName }}
   annotations:
     argocd.argoproj.io/sync-wave: "1"
-  #   machine.openshift.io/GPU: "{{ .Values.gpu.count }}"
-  #   machine.openshift.io/memoryMb: "{{ .Values.gpu.memoryMb }}"
-  #   machine.openshift.io/vCPU: "{{ .Values.gpu.vCPU }}"
 spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
       machine.openshift.io/cluster-api-cluster: {{ .Values.clusterName }}
-      machine.openshift.io/cluster-api-machineset: {{ .Values.clusterName }}-gpu-{{ .Values.machineNameSuffix }}-{{ .Values.availabilityZone }}
+      machine.openshift.io/cluster-api-machineset: {{ .Values.clusterName }}-worker-{{ .Values.machineNameSuffix }}-{{ .Values.availabilityZone }}
   template:
     metadata:
       labels:
         machine.openshift.io/cluster-api-cluster: {{ .Values.clusterName }}
         machine.openshift.io/cluster-api-machine-role: worker
         machine.openshift.io/cluster-api-machine-type: worker
-        machine.openshift.io/cluster-api-machineset: {{ .Values.clusterName }}-gpu-{{ .Values.machineNameSuffix }}-{{ .Values.availabilityZone }}
-        gpu-instance-type: {{ .Values.instanceType }}
-        gpu-type-suffix: {{ .Values.machineNameSuffix }}
+        machine.openshift.io/cluster-api-machineset: {{ .Values.clusterName }}-worker-{{ .Values.machineNameSuffix }}-{{ .Values.availabilityZone }}
+        cpu-instance-type: {{ .Values.instanceType }}
+        cpu-type-suffix: {{ .Values.machineNameSuffix }}
     spec:
       metadata:
         labels:
-          node-role.kubernetes.io/gpu: ""
-          nvidia.com/gpu.present: "true"
-          gpu-instance-type: {{ .Values.instanceType }}
-          gpu-type-suffix: {{ .Values.machineNameSuffix }}
-      taints:
-        {{- toYaml .Values.taints | nindent 8 }}
+          node-role.kubernetes.io/worker: ""
+          cpu-instance-type: {{ .Values.instanceType }}
+          cpu-type-suffix: {{ .Values.machineNameSuffix }}
       providerSpec:
         value:
           kind: AWSMachineProviderConfig
@@ -73,11 +67,12 @@ spec:
           tags:
             - name: kubernetes.io/cluster/{{ .Values.infraID }}
               value: owned
-            - name: gpu-node
+            - name: cpu-worker-node
               value: "true"
-            - name: gpu-instance-type
+            - name: cpu-instance-type
               value: {{ .Values.instanceType }}
-            - name: gpu-type
-              value: {{ .Values.machineNameSuffix }}
           userDataSecret:
             name: worker-user-data
+          credentialsSecret:
+            name: aws-cloud-credentials
+          deviceIndex: 0
