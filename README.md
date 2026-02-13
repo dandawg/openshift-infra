@@ -17,6 +17,9 @@ This repository provides production-ready infrastructure components for OpenShif
 ```
 openshift-infra/
 ├── README.md              # This file
+├── bootstrap.sh           # GitOps installer script
+├── bootstrap/             # GitOps operator manifests
+│   └── gitops-operator/
 ├── gitops/               # ArgoCD Application manifests
 │   └── infra/           # Infrastructure components
 │       ├── cluster-discovery.yaml
@@ -43,10 +46,18 @@ openshift-infra/
 
 ## Prerequisites
 
-- **OpenShift 4.16+** on AWS with cluster-admin access
-- **OpenShift GitOps** (ArgoCD) installed
+- **OpenShift 4.19+** on AWS with cluster-admin access
+- **OpenShift GitOps** (ArgoCD) installed - See installation below
 - **`oc` CLI** and **`argocd` CLI** installed
 - **AWS quota** for GPU and CPU instances in your region
+
+### Install OpenShift GitOps (if needed)
+
+```bash
+./bootstrap.sh
+```
+
+**Note:** If GitOps is already installed (e.g., from deploying another repository), the bootstrap script will detect it and skip installation.
 
 ## Components
 
