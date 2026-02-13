@@ -4,8 +4,7 @@ metadata:
   name: cluster-info-discovery
   namespace: openshift-machine-api
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
-    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   ttlSecondsAfterFinished: 3600
   template:

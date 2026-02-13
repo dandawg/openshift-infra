@@ -4,7 +4,7 @@ metadata:
   name: cluster-info-discovery
   namespace: openshift-machine-api
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "-2"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

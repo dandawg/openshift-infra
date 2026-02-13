@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   name: cluster-info-reader
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "-2"
 rules:
   # Read cluster infrastructure details
   - apiGroups: ["config.openshift.io"]
