@@ -16,17 +16,6 @@ spec:
     helm:
       valueFiles:
         - values-g6e-2xlarge.yaml
-      parameters:
-        - name: clusterName
-          value: REPLACE_ME  # Set via deploy.sh script
-        - name: region
-          value: REPLACE_ME
-        - name: availabilityZone
-          value: REPLACE_ME
-        - name: infraID
-          value: REPLACE_ME
-        - name: amiId
-          value: REPLACE_ME
   destination:
     server: https://kubernetes.default.svc
     namespace: openshift-machine-api
