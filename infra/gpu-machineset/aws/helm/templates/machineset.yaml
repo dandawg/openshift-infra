@@ -1,3 +1,9 @@
+{{- if not .Values.clusterName }}
+{{- fail "clusterName is required. Set via: argocd app set <app-name> -p clusterName=<infra-name> -p availabilityZone=<az> -p infraID=<infra-id> -p amiId=<ami> (or run the machineset deploy script)" }}
+{{- end }}
+{{- if not .Values.availabilityZone }}
+{{- fail "availabilityZone is required. Set via: argocd app set <app-name> -p availabilityZone=<az> (or run the machineset deploy script)" }}
+{{- end }}
 apiVersion: machine.openshift.io/v1beta1
 kind: MachineSet
 metadata:

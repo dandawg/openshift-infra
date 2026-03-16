@@ -33,9 +33,15 @@ case "$INSTANCE_TYPE" in
     APP_NAME="gpu-machineset-aws-g6e"
     MACHINE_NAME_SUFFIX="g6e"
     ;;
+  "g6e.12xlarge")
+    GITOPS_FILE="gitops/infra/gpu-machineset-aws-g6e-12xlarge.yaml"
+    APP_NAME="gpu-machineset-aws-g6e-12xlarge"
+    MACHINE_NAME_SUFFIX="g6e-12xl"
+    REPLICA_COUNT=${REPLICA_COUNT:-0}
+    ;;
   *)
     echo "Error: Unsupported INSTANCE_TYPE '$INSTANCE_TYPE'"
-    echo "Supported types: g4dn.xlarge, g6.2xlarge, g6.4xlarge, g6e.2xlarge"
+    echo "Supported types: g4dn.xlarge, g6.2xlarge, g6.4xlarge, g6e.2xlarge, g6e.12xlarge"
     exit 1
     ;;
 esac

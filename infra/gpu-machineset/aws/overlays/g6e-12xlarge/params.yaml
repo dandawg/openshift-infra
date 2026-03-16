@@ -1,0 +1,13 @@
+# GPU MachineSet Parameters for AWS g6e.12xlarge
+# Edit these values to customize your GPU nodes
+
+# Instance configuration
+instanceType: g6e.12xlarge       # 4x NVIDIA L40S GPUs
+replicas: 1                      # Number of GPU nodes
+
+# GPU details for this instance type:
+# - 4x NVIDIA L40S (48GB GDDR6 each, 192GB total VRAM)
+# - 48 vCPUs
+# - 384 GiB RAM
+# - Cost: ~$10.49/hour (on-demand, us-east-1)
+# - Good for: large multi-GPU inference, model sharding, tensor-parallel LLMs

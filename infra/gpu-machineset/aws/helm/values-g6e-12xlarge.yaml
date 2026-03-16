@@ -1,0 +1,18 @@
+# AWS g6e.12xlarge GPU Configuration
+# 4x NVIDIA L40S (48GB GDDR6 each, 192GB total VRAM)
+# 48 vCPUs, 384 GiB RAM
+# Cost: ~$10.49/hour (on-demand, us-east-1)
+
+machineNameSuffix: "g6e-12xl"
+instanceType: g6e.12xlarge
+replicas: 0
+
+rootVolume:
+  size: 200
+  type: gp3
+  iops: 3000
+
+gpu:
+  count: 4
+  memoryMb: 49152
+  vCPU: 48
