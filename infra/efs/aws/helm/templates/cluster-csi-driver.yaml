@@ -1,0 +1,14 @@
+{{- if not .Values.fileSystemId }}
+{{- fail "fileSystemId is required. Set via: argocd app set efs-aws -p fileSystemId=fs-xxxxx (or run infra/efs/aws/deploy.sh)" }}
+{{- end }}
+apiVersion: operator.openshift.io/v1
+kind: ClusterCSIDriver
+metadata:
+  name: efs.csi.aws.com
+  labels:
+    app.kubernetes.io/name: aws-efs-csi
+    app.kubernetes.io/part-of: openshift-infra
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  managementState: Managed

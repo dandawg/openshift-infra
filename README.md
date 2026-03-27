@@ -7,6 +7,7 @@ Infrastructure-level components for OpenShift clusters, focused on GPU-enabled n
 This repository provides production-ready infrastructure components for OpenShift:
 - **GPU MachineSets**: Automated deployment of GPU-enabled nodes on AWS
 - **CPU MachineSets**: Automated deployment of high-capacity CPU worker nodes on AWS
+- **EFS / RWX Storage**: AWS EFS CSI driver operator plus `StorageClass` for ReadWriteMany volumes
 - **Multi-GPU Support**: Deploy different GPU instance types (g4dn, g6, g6e) simultaneously
 - **GitOps Ready**: ArgoCD Application manifests with deployment scripts
 - **Cost Optimized**: Choose the right instance type for your workload
@@ -25,8 +26,14 @@ openshift-infra/
 │       ├── gpu-machineset-aws-g6.yaml
 │       ├── gpu-machineset-aws-g6-4xlarge.yaml
 │       ├── gpu-machineset-aws-g6e.yaml
-│       └── cpu-machineset-aws-m6a-4xlarge.yaml
+│       ├── cpu-machineset-aws-m6a-4xlarge.yaml
+│       └── efs-aws.yaml
 └── infra/               # Infrastructure component definitions
+    ├── efs/             # AWS EFS RWX storage (CSI + StorageClass)
+    │   └── aws/
+    │       ├── deploy.sh
+    │       ├── README.md
+    │       └── helm/
     ├── gpu-machineset/  # GPU node templates
     │   ├── README.md    # GPU MachineSets documentation
     │   ├── base/        # Base MachineSet template
@@ -80,6 +87,39 @@ INSTANCE_TYPE=m6a.4xlarge \
 ROOT_VOLUME_SIZE=200 \
 ./infra/cpu-machineset/aws/deploy.sh
 ```
+
+### EFS / RWX storage (AWS)
+
+Deploy the **AWS EFS CSI Driver Operator**, enable `ClusterCSIDriver` `efs.csi.aws.com`, and a **`StorageClass`** (default name `efs-csi`) for **ReadWriteMany** PVCs.
+
+**Recommended (script):** provisions an EFS file system in the cluster VPC using credentials from `openshift-machine-api/aws-cloud-credentials`, then syncs Argo CD app `efs-aws`:
+
+```bash
+./bootstrap.sh   # if OpenShift GitOps is not installed yet
+./infra/efs/aws/deploy.sh
+```
+
+**Reuse an existing EFS file system** (skip AWS creation):
+
+```bash
+EFS_FILE_SYSTEM_ID=fs-xxxxxxxx ./infra/efs/aws/deploy.sh
+```
+
+**Custom StorageClass name:**
+
+```bash
+STORAGE_CLASS_NAME=efs-scratch ./infra/efs/aws/deploy.sh
+```
+
+Manual steps, troubleshooting, and production notes: **[infra/efs/aws/README.md](infra/efs/aws/README.md)**.
+
+**Tear down** (removes mount targets, SG, filesystem in AWS, plus the Argo CD app and StorageClass):
+
+```bash
+EFS_FILE_SYSTEM_ID=fs-xxxxxxxx ./infra/efs/aws/teardown.sh
+```
+
+Argo CD Application manifest only: `gitops/infra/efs-aws.yaml` (you must still set Helm `fileSystemId` before the chart will sync — use the deploy script or `argocd app set`).
 
 ## Quick Start: Deploy GPU Nodes
 

@@ -1,0 +1,13 @@
+{{- if .Values.operatorGroup.create }}
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: {{ .Values.operatorGroup.name }}
+  namespace: openshift-cluster-csi-drivers
+  labels:
+    app.kubernetes.io/name: aws-efs-csi
+    app.kubernetes.io/part-of: openshift-infra
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec: {}
+{{- end }}

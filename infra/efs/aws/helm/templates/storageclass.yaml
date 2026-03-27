@@ -1,0 +1,23 @@
+{{- if not .Values.fileSystemId }}
+{{- fail "fileSystemId is required. Set via: argocd app set efs-aws -p fileSystemId=fs-xxxxx (or run infra/efs/aws/deploy.sh)" }}
+{{- end }}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.storageClass.name }}
+  labels:
+    app.kubernetes.io/name: aws-efs-csi
+    app.kubernetes.io/part-of: openshift-infra
+    {{- if .Values.clusterName }}
+    openshift-infra/cluster-name: {{ .Values.clusterName | quote }}
+    {{- end }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: {{ .Values.storageClass.provisioningMode }}
+  fileSystemId: {{ .Values.fileSystemId | quote }}
+  directoryPerms: {{ .Values.storageClass.directoryPerms | quote }}
+reclaimPolicy: {{ .Values.storageClass.reclaimPolicy }}
+volumeBindingMode: {{ .Values.storageClass.volumeBindingMode }}

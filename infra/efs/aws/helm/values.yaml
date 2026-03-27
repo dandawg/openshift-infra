@@ -1,0 +1,32 @@
+# Populated by deploy.sh via: argocd app set efs-aws -p fileSystemId=fs-xxxxx ...
+# Required for sync: fileSystemId must be non-empty.
+
+fileSystemId: ""
+
+# AWS region (informational / future use); EFS CSI uses fileSystemId + IAM/node creds.
+region: ""
+
+# OpenShift infrastructure name (informational labels).
+clusterName: ""
+
+storageClass:
+  name: efs-csi
+  reclaimPolicy: Delete
+  volumeBindingMode: Immediate
+  # EFS Access Points per PVC (production-oriented default).
+  provisioningMode: efs-ap
+  directoryPerms: "700"
+
+# OLM requires an OperatorGroup in the namespace before Subscriptions resolve.
+# Some clusters (e.g. OPENTLC sandboxes) ship without one in openshift-cluster-csi-drivers.
+# If your cluster already has an OperatorGroup in that namespace, set create: false.
+operatorGroup:
+  create: true
+  name: openshift-cluster-csi-drivers-og
+
+# Operator subscription (openshift-cluster-csi-drivers namespace is expected to exist).
+operator:
+  channel: stable
+  installPlanApproval: Automatic
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
