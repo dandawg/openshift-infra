@@ -79,7 +79,7 @@ if [ -z "$ARGOCD_SERVER" ]; then
   exit 1
 fi
 
-argocd login $ARGOCD_SERVER --username admin --password $ARGOCD_PASSWORD --insecure > /dev/null 2>&1
+argocd login $ARGOCD_SERVER --username admin --password $ARGOCD_PASSWORD --insecure --grpc-web --skip-test-tls > /dev/null 2>&1
 echo "  Logged in to ArgoCD at $ARGOCD_SERVER"
 echo ""
 

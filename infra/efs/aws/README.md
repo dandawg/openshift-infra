@@ -2,7 +2,8 @@
 
 Adds **ReadWriteMany (RWX)** volumes on AWS using **EFS** and the **AWS EFS CSI Driver Operator** (Red Hat Operators catalog).
 
-- **GitOps / automated:** from repo root run `./infra/efs/aws/deploy.sh` (see main [README](../../../README.md)). That script creates an EFS file system in your VPC (using `openshift-machine-api/aws-cloud-credentials`), then syncs an Argo CD app that installs the operator subscription, `ClusterCSIDriver`, and a `StorageClass`.
+- **GitOps / automated:** from repo root run `./infra/efs/aws/deploy.sh` (see main [README](../../../README.md)). That script creates an EFS file system in your VPC using **`kube-system/aws-creds`** (see Prerequisites below), then applies and syncs the Argo CD app **`efs-aws`** that installs the operator subscription, `ClusterCSIDriver`, and a `StorageClass`.
+- **List existing `fs-…` IDs without the AWS console:** `./infra/efs/aws/list-efs.sh` (default: EFS with mount targets in the cluster VPC). Use `LIST_EFS_SCOPE=region` to print every EFS in the region.
 - **This document:** manual steps if you prefer not to use the script, or to troubleshoot.
 
 ## Prerequisites

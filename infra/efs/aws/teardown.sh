@@ -185,7 +185,7 @@ if oc get application "${APP_NAME}" -n openshift-gitops >/dev/null 2>&1; then
   ARGOCD_SERVER="$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || true)"
   if [ -n "${ARGOCD_SERVER}" ]; then
     ARGOCD_PASSWORD="$(oc get secret/openshift-gitops-cluster -n openshift-gitops -o jsonpath='{.data.admin\.password}' | base64 -d)"
-    if argocd login "${ARGOCD_SERVER}" --username admin --password "${ARGOCD_PASSWORD}" --insecure >/dev/null 2>&1; then
+    if argocd login "${ARGOCD_SERVER}" --username admin --password "${ARGOCD_PASSWORD}" --insecure --grpc-web --skip-test-tls >/dev/null 2>&1; then
       argocd_available=true
     fi
   fi

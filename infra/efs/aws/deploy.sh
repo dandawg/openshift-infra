@@ -228,6 +228,12 @@ else
 fi
 
 echo "Step 3: Logging in to ArgoCD..."
+if ! command -v argocd >/dev/null 2>&1; then
+  echo "Error: argocd CLI not found in PATH."
+  echo "  Install: https://argo-cd.readthedocs.io/en/stable/cli_installation/"
+  exit 1
+fi
+
 ARGOCD_PASSWORD="$(oc get secret/openshift-gitops-cluster -n openshift-gitops -o jsonpath='{.data.admin\.password}' | base64 -d)"
 ARGOCD_SERVER="$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}')"
 
@@ -236,7 +242,16 @@ if [ -z "${ARGOCD_SERVER}" ]; then
   exit 1
 fi
 
-argocd login "${ARGOCD_SERVER}" --username admin --password "${ARGOCD_PASSWORD}" --insecure >/dev/null 2>&1
+# OpenShift GitOps: the route speaks gRPC-Web, not raw gRPC; without --grpc-web the CLI probe times out
+# ("gRPC connection not ready: context deadline exceeded"). --skip-test-tls avoids flaky TLS handshakes on some clusters.
+if ! login_out="$(argocd login "${ARGOCD_SERVER}" --username admin --password "${ARGOCD_PASSWORD}" --insecure --grpc-web --skip-test-tls 2>&1)"; then
+  echo "Error: argocd login failed for ${ARGOCD_SERVER}"
+  echo "${login_out}"
+  echo ""
+  echo "Hints: oc get pods -n openshift-gitops; reachability: curl -skI \"https://${ARGOCD_SERVER}/\""
+  echo "  Admin password: oc get secret openshift-gitops-cluster -n openshift-gitops -o jsonpath='{.data.admin\\.password}' | base64 -d"
+  exit 1
+fi
 echo "  Logged in to ArgoCD at ${ARGOCD_SERVER}"
 echo ""
 
@@ -250,14 +265,20 @@ fi
 echo ""
 
 echo "Step 5: Setting Helm parameters and syncing..."
-argocd app set "${APP_NAME}" \
+if ! argocd app set "${APP_NAME}" \
   -p "fileSystemId=${FS_ID}" \
   -p "region=${REGION}" \
   -p "clusterName=${CLUSTER_NAME}" \
-  -p "storageClass.name=${STORAGE_CLASS_NAME}" >/dev/null
+  -p "storageClass.name=${STORAGE_CLASS_NAME}"; then
+  echo "Error: argocd app set failed (is application '${APP_NAME}' missing? Check step 4 output above.)"
+  exit 1
+fi
 
 argocd app set "${APP_NAME}" --sync-policy automated --auto-prune --self-heal >/dev/null 2>&1 || true
-argocd app sync "${APP_NAME}"
+if ! argocd app sync "${APP_NAME}"; then
+  echo "Error: argocd app sync failed. Try: argocd app get ${APP_NAME}"
+  exit 1
+fi
 echo "  Application synced"
 echo ""
 

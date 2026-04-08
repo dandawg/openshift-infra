@@ -32,6 +32,7 @@ openshift-infra/
     ├── efs/             # AWS EFS RWX storage (CSI + StorageClass)
     │   └── aws/
     │       ├── deploy.sh
+    │       ├── list-efs.sh   # list fs-xxxxx IDs via in-cluster AWS API (no console)
     │       ├── README.md
     │       └── helm/
     ├── gpu-machineset/  # GPU node templates
@@ -92,11 +93,21 @@ ROOT_VOLUME_SIZE=200 \
 
 Deploy the **AWS EFS CSI Driver Operator**, enable `ClusterCSIDriver` `efs.csi.aws.com`, and a **`StorageClass`** (default name `efs-csi`) for **ReadWriteMany** PVCs.
 
-**Recommended (script):** provisions an EFS file system in the cluster VPC using credentials from `openshift-machine-api/aws-cloud-credentials`, then syncs Argo CD app `efs-aws`:
+**Recommended (script):** provisions EFS in the cluster VPC via a short-lived Job that mounts **`kube-system/aws-creds`** (sandbox/installer-style IAM with EFS and EC2; **`openshift-machine-api/aws-cloud-credentials`** is machine/EC2-only and cannot create EFS), then applies the Argo CD application **`efs-aws`**, sets Helm parameters, and syncs:
 
 ```bash
-./bootstrap.sh   # if OpenShift GitOps is not installed yet
+# ./bootstrap.sh   # if OpenShift GitOps is not installed yet
 ./infra/efs/aws/deploy.sh
+```
+
+**List EFS file system IDs** (no AWS console; uses the same **`kube-system/aws-creds`** Job pattern as `deploy.sh`):
+
+```bash
+# Default: EFS that have mount targets in this cluster’s VPC
+./infra/efs/aws/list-efs.sh
+
+# Everything in the account/region (if the default filter shows nothing useful)
+LIST_EFS_SCOPE=region ./infra/efs/aws/list-efs.sh
 ```
 
 **Reuse an existing EFS file system** (skip AWS creation):
@@ -178,7 +189,7 @@ AMI_ID=$(oc get machineset -n openshift-machine-api -o json | jq -r '.items[] | 
 # Login to ArgoCD
 ARGOCD_PASSWORD=$(oc get secret/openshift-gitops-cluster -n openshift-gitops -o jsonpath='{.data.admin\.password}' | base64 -d)
 ARGOCD_SERVER=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}')
-argocd login $ARGOCD_SERVER --username admin --password $ARGOCD_PASSWORD --insecure
+argocd login $ARGOCD_SERVER --username admin --password $ARGOCD_PASSWORD --insecure --grpc-web --skip-test-tls
 
 # Set cluster parameters
 argocd app set gpu-machineset-aws-g6 \
