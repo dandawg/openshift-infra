@@ -87,6 +87,9 @@ High-capacity CPU worker nodes for workloads that need more compute but not GPUs
 INSTANCE_TYPE=m6a.4xlarge \
 ROOT_VOLUME_SIZE=200 \
 ./infra/cpu-machineset/aws/deploy.sh
+
+# MachineSet size (default 1): REPLICAS=<n> or REPLICA_COUNT=<n>
+REPLICAS=2 ./infra/cpu-machineset/aws/deploy.sh
 ```
 
 ### EFS / RWX storage (AWS)
@@ -162,6 +165,9 @@ ROOT_VOLUME_SIZE=200 \
 ROOT_VOLUME_TYPE=gp3 \
 ROOT_VOLUME_IOPS=5000 \
 ./infra/gpu-machineset/aws/deploy.sh
+
+# MachineSet size (default 1): REPLICAS=<n> or REPLICA_COUNT=<n>
+REPLICAS=2 ./infra/gpu-machineset/aws/deploy.sh
 ```
 
 The script automatically:

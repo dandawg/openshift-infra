@@ -84,9 +84,9 @@ ROOT_VOLUME_IOPS=5000 \
 # Deploy g6.4xlarge for high-performance workloads
 INSTANCE_TYPE=g6.4xlarge ./infra/gpu-machineset/aws/deploy.sh
 
-# Deploy with multiple replicas (default is 1)
+# Deploy with multiple replicas (default is 1; use REPLICAS or REPLICA_COUNT)
 INSTANCE_TYPE=g6.2xlarge \
-REPLICA_COUNT=3 \
+REPLICAS=3 \
 ./infra/gpu-machineset/aws/deploy.sh
 ```
 
@@ -95,7 +95,8 @@ REPLICA_COUNT=3 \
 - `ROOT_VOLUME_SIZE` - Root volume size in GB (default: `120`)
 - `ROOT_VOLUME_TYPE` - Volume type: `gp3` or `gp2` (default: `gp3`)
 - `ROOT_VOLUME_IOPS` - IOPS for gp3 volumes (default: `3000`)
-- `REPLICA_COUNT` - Number of GPU nodes to create (default: `1`)
+- `REPLICAS` - Number of GPU nodes (default `1`)
+- `REPLICA_COUNT` - Same as `REPLICAS` when `REPLICAS` is unset
 
 **Available instance types:**
 - `g4dn.xlarge` - 1x T4 GPU, most cost-effective (~$0.53/hr)

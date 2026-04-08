@@ -5,7 +5,7 @@
 
 machineNameSuffix: "g6e-12xl"
 instanceType: g6e.12xlarge
-replicas: 0
+replicas: 1
 
 rootVolume:
   size: 200

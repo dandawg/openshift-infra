@@ -48,8 +48,10 @@ INSTANCE_TYPE=g6e.2xlarge ./infra/gpu-machineset/aws/deploy.sh
 
 # Deploy with multiple replicas (default is 1)
 INSTANCE_TYPE=g6.2xlarge \
-REPLICA_COUNT=3 \
+REPLICAS=3 \
 ./infra/gpu-machineset/aws/deploy.sh
+
+# Equivalent: REPLICA_COUNT=3 (REPLICAS wins if both are set)
 ```
 
 **Configuration Options:**
@@ -61,7 +63,8 @@ REPLICA_COUNT=3 \
 - `ROOT_VOLUME_SIZE` - Root volume size in GB (default: `120`)
 - `ROOT_VOLUME_TYPE` - Volume type: `gp3` (recommended) or `gp2` (default: `gp3`)
 - `ROOT_VOLUME_IOPS` - IOPS for gp3 volumes (default: `3000`)
-- `REPLICA_COUNT` - Number of GPU nodes to create (default: `1`)
+- `REPLICAS` - Number of GPU nodes (MachineSet `replicas`); default `1`
+- `REPLICA_COUNT` - Same as `REPLICAS` if `REPLICAS` is unset (for backward compatibility)
 
 The script automatically:
 1. Gathers your cluster information (name, region, AZ, AMI)

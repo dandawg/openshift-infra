@@ -9,7 +9,13 @@ INSTANCE_TYPE=${INSTANCE_TYPE:-"g6.2xlarge"}
 ROOT_VOLUME_SIZE=${ROOT_VOLUME_SIZE:-120}
 ROOT_VOLUME_TYPE=${ROOT_VOLUME_TYPE:-"gp3"}
 ROOT_VOLUME_IOPS=${ROOT_VOLUME_IOPS:-3000}
-REPLICA_COUNT=${REPLICA_COUNT:-1}
+
+# MachineSet replica count (Helm `replicas`): REPLICAS=<n> or REPLICA_COUNT=<n> (REPLICAS wins if set). Default: 1.
+if [ -n "${REPLICAS:-}" ]; then
+  REPLICA_COUNT="$REPLICAS"
+else
+  REPLICA_COUNT="${REPLICA_COUNT:-1}"
+fi
 
 # Determine GitOps file and app name based on instance type
 case "$INSTANCE_TYPE" in
@@ -37,7 +43,6 @@ case "$INSTANCE_TYPE" in
     GITOPS_FILE="gitops/infra/gpu-machineset-aws-g6e-12xlarge.yaml"
     APP_NAME="gpu-machineset-aws-g6e-12xlarge"
     MACHINE_NAME_SUFFIX="g6e-12xl"
-    REPLICA_COUNT=${REPLICA_COUNT:-0}
     ;;
   *)
     echo "Error: Unsupported INSTANCE_TYPE '$INSTANCE_TYPE'"
