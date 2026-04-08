@@ -17,9 +17,35 @@ echo "📦 Installing OpenShift GitOps Operator..."
 oc apply -k bootstrap/gitops-operator/base/
 
 echo "⏳ Waiting for GitOps Operator to be ready..."
+# oc wait fails immediately if the Deployment does not exist yet; OLM creates it
+# after the Subscription reconciles. Poll until it appears, then wait for Available.
+# Newer GitOps defaults may place the operator in openshift-gitops-operator; older
+# installs use openshift-operators (matching our Subscription namespace).
+timeout=300
+elapsed=0
+operator_ns=""
+while [ "$elapsed" -lt "$timeout" ]; do
+  for try_ns in openshift-operators openshift-gitops-operator; do
+    if oc get deployment openshift-gitops-operator-controller-manager -n "$try_ns" &>/dev/null; then
+      operator_ns=$try_ns
+      break 2
+    fi
+  done
+  echo "  Waiting for operator deployment to appear... (${elapsed}s / ${timeout}s)"
+  sleep 5
+  elapsed=$((elapsed + 5))
+done
+
+if [ -z "$operator_ns" ]; then
+  echo "❌ Timeout: deployment/openshift-gitops-operator-controller-manager not found."
+  echo "   Check: oc get subscription openshift-gitops-operator -n openshift-operators"
+  echo "   and: oc get csv -n openshift-operators; oc get installplan -n openshift-operators"
+  exit 1
+fi
+
 oc wait --for=condition=Available \
   deployment/openshift-gitops-operator-controller-manager \
-  -n openshift-operators --timeout=300s
+  -n "$operator_ns" --timeout=300s
 
 echo "🚀 Creating ArgoCD instance..."
 oc apply -k bootstrap/gitops-operator/instance/
