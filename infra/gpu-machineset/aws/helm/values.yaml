@@ -31,7 +31,6 @@ gpu:
 
 taints:
   - key: nvidia.com/gpu
-    value: "qwen3-vl-embedding-2b-1 "
     effect: NoSchedule
 
 # GPU instance type details:
