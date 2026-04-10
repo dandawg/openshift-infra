@@ -274,12 +274,17 @@ if ! argocd app set "${APP_NAME}" \
   exit 1
 fi
 
-argocd app set "${APP_NAME}" --sync-policy automated --auto-prune --self-heal >/dev/null 2>&1 || true
+# Sync manually first before enabling the automated sync policy.
+# Setting --sync-policy automated immediately triggers a background sync; calling
+# argocd app sync right after would race against it and fail with
+# "another operation is already in progress".
 if ! argocd app sync "${APP_NAME}"; then
   echo "Error: argocd app sync failed. Try: argocd app get ${APP_NAME}"
   exit 1
 fi
 echo "  Application synced"
+
+argocd app set "${APP_NAME}" --sync-policy automated --auto-prune --self-heal >/dev/null 2>&1 || true
 echo ""
 
 echo "==================================="
