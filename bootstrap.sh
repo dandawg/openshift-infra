@@ -51,6 +51,19 @@ echo "🚀 Creating ArgoCD instance..."
 oc apply -k bootstrap/gitops-operator/instance/
 
 echo "⏳ Waiting for ArgoCD to be ready..."
+# oc wait exits immediately with "no matching resources found" if no pods exist yet.
+# Poll until at least one pod appears before handing off to oc wait.
+elapsed=0
+while [ "$elapsed" -lt "$timeout" ]; do
+  if oc get pod -l app.kubernetes.io/name=openshift-gitops-server \
+       -n openshift-gitops --no-headers 2>/dev/null | grep -q .; then
+    break
+  fi
+  echo "  Waiting for openshift-gitops-server pod to appear... (${elapsed}s / ${timeout}s)"
+  sleep 5
+  elapsed=$((elapsed + 5))
+done
+
 oc wait --for=condition=Ready \
   pod -l app.kubernetes.io/name=openshift-gitops-server \
   -n openshift-gitops --timeout=300s
