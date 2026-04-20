@@ -1,4 +1,5 @@
 #!/bin/bash
+# Legacy bash entrypoint (kept for stability; undocumented — prefer `uv run ./infra/machineset/aws/deploy.py --help`).
 set -e
 
 # CPU MachineSet Deployment Script for AWS

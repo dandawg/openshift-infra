@@ -1,3 +1,5 @@
+.venv/
+dist/
 *.swp
 *.swo
 *~
@@ -5,3 +7,4 @@
 .idea/
 .vscode/
 *.log
+*.pyc

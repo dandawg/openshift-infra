@@ -1,5 +1,5 @@
 {{- if not .Values.fileSystemId }}
-{{- fail "fileSystemId is required. Set via: argocd app set efs-aws -p fileSystemId=fs-xxxxx (or run infra/efs/aws/deploy.sh)" }}
+{{- fail "fileSystemId is required. Set via: argocd app set efs-aws -p fileSystemId=fs-xxxxx (or run infra/efs/aws/deploy.py)" }}
 {{- end }}
 apiVersion: operator.openshift.io/v1
 kind: ClusterCSIDriver

@@ -2,9 +2,9 @@
 
 Adds **ReadWriteMany (RWX)** volumes on AWS using **EFS** and the **AWS EFS CSI Driver Operator** (Red Hat Operators catalog).
 
-- **GitOps / automated:** from repo root run `./infra/efs/aws/deploy.sh` (see main [README](../../../README.md)). That script creates an EFS file system in your VPC using **`kube-system/aws-creds`** (see Prerequisites below), then applies and syncs the Argo CD app **`efs-aws`** that installs the operator subscription, `ClusterCSIDriver`, and a `StorageClass`.
+- **GitOps / automated:** from repo root run `uv run ./infra/efs/aws/deploy.py` (see main [README](../../../README.md)). That CLI creates an EFS file system in your VPC using **`kube-system/aws-creds`** (see Prerequisites below), then applies and syncs the Argo CD app **`efs-aws`** that installs the operator subscription, `ClusterCSIDriver`, and a `StorageClass`.
 - **List existing `fs-…` IDs without the AWS console:** `./infra/efs/aws/list-efs.sh` (default: EFS with mount targets in the cluster VPC). Use `LIST_EFS_SCOPE=region` to print every EFS in the region.
-- **This document:** manual steps if you prefer not to use the script, or to troubleshoot.
+- **This document:** manual steps if you prefer not to use the deploy CLI, or to troubleshoot.
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ Use this when you have **no** AWS console but **do** have cluster-admin and cred
 
 ### Step 1 — Install the EFS CSI operator (Subscription + ClusterCSIDriver)
 
-Apply the same resources the Helm chart would render, or use Helm/Argo CD with a **temporary** `fileSystemId` only if you need to render; the chart **fails** Helm if `fileSystemId` is empty, so the practical order is: **create EFS first**, then apply the app (see deploy script), OR install the operator manually:
+Apply the same resources the Helm chart would render, or use Helm/Argo CD with a **temporary** `fileSystemId` only if you need to render; the chart **fails** Helm if `fileSystemId` is empty, so the practical order is: **create EFS first**, then apply the app (see `deploy.py`), OR install the operator manually:
 
 ```yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -169,7 +169,7 @@ oc get pvc efs-rwx-test
 |--------|------------------|
 | PVC stuck `Pending` | CSI controller logs; EFS mount targets in correct subnets; security group allows 2049 from worker nodes. |
 | `AccessDenied` in Job logs | IAM rights for EFS/EC2 on the user behind `aws-cloud-credentials`. |
-| Helm / Argo CD: `fileSystemId is required` | Set `-p fileSystemId=fs-...` before sync (or run `./deploy.sh`). |
+| Helm / Argo CD: `fileSystemId is required` | Set `-p fileSystemId=fs-...` before sync (or run `uv run ./infra/efs/aws/deploy.py`). |
 | Operator not installing | `Subscription` status; `InstallPlan` in `openshift-cluster-csi-drivers`; catalog `redhat-operators` reachable. |
 
 ## Teardown
@@ -205,4 +205,4 @@ SKIP_AWS_TEARDOWN=true ./infra/efs/aws/teardown.sh
 
 ## See also
 
-- Main repo [README](../../../README.md) — EFS quick start via `./infra/efs/aws/deploy.sh`
+- Main repo [README](../../../README.md) — EFS quick start via `uv run ./infra/efs/aws/deploy.py`

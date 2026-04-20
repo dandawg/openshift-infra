@@ -8,7 +8,7 @@ set -euo pipefail
 # Prerequisites: oc, cluster-admin, OpenShift on AWS.
 #
 # Required environment variable:
-#   EFS_FILE_SYSTEM_ID   The fs-xxxxx id to delete (printed at the end of deploy.sh).
+#   EFS_FILE_SYSTEM_ID   The fs-xxxxx id to delete (printed at the end of deploy.py).
 #
 # Optional environment variables:
 #   SKIP_AWS_TEARDOWN    Set to "true" to skip the AWS side (only remove the Argo CD app / OpenShift objects).

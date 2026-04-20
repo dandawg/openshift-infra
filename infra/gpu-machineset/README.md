@@ -17,7 +17,7 @@ This directory provides parameterized MachineSet templates for AWS with various 
 gpu-machineset/
 ├── base/                  # Base MachineSet template
 └── aws/                   # AWS configurations
-    ├── deploy.sh         # Automated deployment script
+    ├── deploy.sh         # Legacy bash deploy (optional)
     ├── helm/             # Helm chart for ArgoCD deployment
     │   ├── Chart.yaml
     │   ├── values.yaml
@@ -63,45 +63,32 @@ REPLICA_COUNT=1 \
 - `ROOT_VOLUME_IOPS` - IOPS for gp3 volumes (default: `3000`)
 - `REPLICA_COUNT` - Number of CPU worker nodes to create (default: `1`)
 
-### 3. Deploy GPU Workers via Automated Script (Recommended)
+### 3. Deploy GPU workers (deploy CLI, recommended)
 
-Use the deployment script to automatically configure and deploy:
+From **openshift-infra** repo root: `uv sync`, then `uv run ./infra/machineset/aws/deploy.py --help` (unified GPU + CPU MachineSet CLI).
 
 ```bash
 # Deploy with default settings (g6.2xlarge, 120GB gp3 volume)
-./infra/gpu-machineset/aws/deploy.sh
+uv run ./infra/machineset/aws/deploy.py
 
 # Deploy g4dn.xlarge (most cost-effective)
-INSTANCE_TYPE=g4dn.xlarge \
-ROOT_VOLUME_SIZE=100 \
-./infra/gpu-machineset/aws/deploy.sh
+uv run ./infra/machineset/aws/deploy.py --instance-type g4dn.xlarge --root-volume-size 100
 
 # Deploy g6.2xlarge with custom storage
-INSTANCE_TYPE=g6.2xlarge \
-ROOT_VOLUME_SIZE=200 \
-ROOT_VOLUME_TYPE=gp3 \
-ROOT_VOLUME_IOPS=5000 \
-./infra/gpu-machineset/aws/deploy.sh
+uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge \
+  --root-volume-size 200 --root-volume-type gp3 --root-volume-iops 5000
 
 # Deploy g6.4xlarge for high-performance workloads
-INSTANCE_TYPE=g6.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+uv run ./infra/machineset/aws/deploy.py --instance-type g6.4xlarge
 
-# Deploy p5.4xlarge (single NVIDIA H100); deploy script defaults root volume to 200GB unless you set ROOT_VOLUME_SIZE
-INSTANCE_TYPE=p5.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+# Deploy p5.4xlarge (single NVIDIA H100); default root volume 200GB for this type unless overridden
+uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge
 
-# Deploy with multiple replicas (default is 1; use REPLICAS or REPLICA_COUNT)
-INSTANCE_TYPE=g6.2xlarge \
-REPLICAS=3 \
-./infra/gpu-machineset/aws/deploy.sh
+# Deploy with multiple replicas (default is 1)
+uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge --replicas 3
 ```
 
-**GPU Worker Configuration Options:**
-- `INSTANCE_TYPE` - GPU instance type (default: `g6.2xlarge`)
-- `ROOT_VOLUME_SIZE` - Root volume size in GB (default: `120`, or `200` when `INSTANCE_TYPE=p5.4xlarge` and unset)
-- `ROOT_VOLUME_TYPE` - Volume type: `gp3` or `gp2` (default: `gp3`)
-- `ROOT_VOLUME_IOPS` - IOPS for gp3 volumes (default: `3000`)
-- `REPLICAS` - Number of GPU nodes (default `1`)
-- `REPLICA_COUNT` - Same as `REPLICAS` when `REPLICAS` is unset
+**GPU worker options (flags and env vars):** `--instance-type` / `INSTANCE_TYPE`, `--root-volume-size` / `ROOT_VOLUME_SIZE`, `--root-volume-type` / `ROOT_VOLUME_TYPE`, `--root-volume-iops` / `ROOT_VOLUME_IOPS`, `--replicas` / `REPLICAS`, `--replica-count` / `REPLICA_COUNT`.
 
 **Available instance types:**
 - `g4dn.xlarge` - 1x T4 GPU, most cost-effective (~$0.53/hr)
@@ -110,7 +97,7 @@ REPLICAS=3 \
 - `g6e.2xlarge`, `g6e.12xlarge` - L40S (see [aws/README.md](aws/README.md))
 - `p5.4xlarge` - 1x NVIDIA H100 (80GB); pricing varies by region
 
-The script will:
+The deploy CLI will:
 1. Gather your cluster information (name, region, AZ, AMI) from master or worker nodes
 2. Login to ArgoCD
 3. Create the ArgoCD Application
@@ -123,16 +110,16 @@ You can deploy multiple GPU instance types for different workloads:
 
 ```bash
 # Deploy cost-effective g4dn for embedding models
-INSTANCE_TYPE=g4dn.xlarge ./infra/gpu-machineset/aws/deploy.sh
+uv run ./infra/machineset/aws/deploy.py --instance-type g4dn.xlarge
 
 # Also deploy g6.2xlarge for production inference
-INSTANCE_TYPE=g6.2xlarge ./infra/gpu-machineset/aws/deploy.sh
+uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge
 
 # And deploy g6.4xlarge for vision models
-INSTANCE_TYPE=g6.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+uv run ./infra/machineset/aws/deploy.py --instance-type g6.4xlarge
 
 # And deploy p5.4xlarge for H100 workloads
-INSTANCE_TYPE=p5.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge
 ```
 
 Each instance type creates a uniquely named MachineSet to avoid conflicts:
@@ -386,9 +373,9 @@ Check:
 
 This error occurs when the GitOps Application is applied without setting the Helm parameters first.
 
-**Solution:** Use the deployment script which handles this automatically:
+**Solution:** Use the deploy CLI which handles this automatically:
 ```bash
-INSTANCE_TYPE=g4dn.xlarge ./infra/gpu-machineset/aws/deploy.sh
+uv run ./infra/machineset/aws/deploy.py --instance-type g4dn.xlarge
 ```
 
 If you already applied the application manually:
@@ -396,8 +383,8 @@ If you already applied the application manually:
 # Delete the failed application
 oc delete application gpu-machineset-aws-g4dn-xlarge -n openshift-gitops
 
-# Then use the deployment script
-INSTANCE_TYPE=g4dn.xlarge ./infra/gpu-machineset/aws/deploy.sh
+# Then use the deploy CLI
+uv run ./infra/machineset/aws/deploy.py --instance-type g4dn.xlarge
 ```
 
 ## Advanced Usage
@@ -449,7 +436,7 @@ kustomize build infra/gpu-machineset/aws/overlays/p5-4xlarge | oc apply -f -
 
 4. Update the Application to reference new values file
 
-5. Update `deploy.sh` script to support new instance type
+5. Add a GPU profile in `openshift_infra_deploy/machineset_deploy.py` and wire GitOps manifests for the new instance type
 
 ## References
 

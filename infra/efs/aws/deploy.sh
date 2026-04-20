@@ -1,4 +1,5 @@
 #!/bin/bash
+# Legacy bash entrypoint (kept for stability; undocumented — prefer `uv run ./infra/efs/aws/deploy.py --help`).
 set -euo pipefail
 
 # AWS EFS RWX storage: creates an EFS filesystem (unless EFS_FILE_SYSTEM_ID is set), then syncs GitOps

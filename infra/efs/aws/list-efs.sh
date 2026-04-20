@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# List EFS file system IDs using the same in-cluster credentials as deploy.sh
+# List EFS file system IDs using the same in-cluster credentials as deploy.py
 # (kube-system/aws-creds). No AWS console or local aws CLI required.
 #
 # Environment:
@@ -16,7 +16,7 @@ LIST_EFS_SCOPE="${LIST_EFS_SCOPE:-cluster}"
 
 if ! oc get secret "${SECRET_AWS_CREDS}" -n "${CREDS_NAMESPACE}" >/dev/null 2>&1; then
   echo "Error: secret ${CREDS_NAMESPACE}/${SECRET_AWS_CREDS} not found."
-  echo "  This script needs the same credential secret as ./infra/efs/aws/deploy.sh"
+  echo "  This script needs the same credential secret as ./infra/efs/aws/deploy.py"
   exit 1
 fi
 
