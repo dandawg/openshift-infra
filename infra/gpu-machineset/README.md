@@ -24,12 +24,14 @@ gpu-machineset/
     │   ├── values-g4dn-xlarge.yaml
     │   ├── values-g6-2xlarge.yaml
     │   ├── values-g6-4xlarge.yaml
+    │   ├── values-p5-4xlarge.yaml
     │   └── templates/
     │       └── machineset.yaml
     └── overlays/         # Kustomize overlays (advanced)
         ├── g4dn-xlarge/
         ├── g6-2xlarge/
-        └── g6-4xlarge/
+        ├── g6-4xlarge/
+        └── p5-4xlarge/
 ```
 
 ## Quick Start
@@ -37,7 +39,7 @@ gpu-machineset/
 ### 1. Choose Your Instance Type
 
 See cloud-specific READMEs:
-- [AWS GPU instances](aws/README.md) - Complete details on g4dn and g6 instances
+- [AWS GPU instances](aws/README.md) - Complete details on g4dn, g6, g6e, and p5 instances
 
 ### 2. Deploy CPU Workers (Optional)
 
@@ -84,6 +86,9 @@ ROOT_VOLUME_IOPS=5000 \
 # Deploy g6.4xlarge for high-performance workloads
 INSTANCE_TYPE=g6.4xlarge ./infra/gpu-machineset/aws/deploy.sh
 
+# Deploy p5.4xlarge (single NVIDIA H100); deploy script defaults root volume to 200GB unless you set ROOT_VOLUME_SIZE
+INSTANCE_TYPE=p5.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+
 # Deploy with multiple replicas (default is 1; use REPLICAS or REPLICA_COUNT)
 INSTANCE_TYPE=g6.2xlarge \
 REPLICAS=3 \
@@ -92,7 +97,7 @@ REPLICAS=3 \
 
 **GPU Worker Configuration Options:**
 - `INSTANCE_TYPE` - GPU instance type (default: `g6.2xlarge`)
-- `ROOT_VOLUME_SIZE` - Root volume size in GB (default: `120`)
+- `ROOT_VOLUME_SIZE` - Root volume size in GB (default: `120`, or `200` when `INSTANCE_TYPE=p5.4xlarge` and unset)
 - `ROOT_VOLUME_TYPE` - Volume type: `gp3` or `gp2` (default: `gp3`)
 - `ROOT_VOLUME_IOPS` - IOPS for gp3 volumes (default: `3000`)
 - `REPLICAS` - Number of GPU nodes (default `1`)
@@ -102,6 +107,8 @@ REPLICAS=3 \
 - `g4dn.xlarge` - 1x T4 GPU, most cost-effective (~$0.53/hr)
 - `g6.2xlarge` - 1x L4 GPU, recommended for most workloads (~$1.10/hr)
 - `g6.4xlarge` - 1x L4 GPU, high-performance (~$2.15/hr)
+- `g6e.2xlarge`, `g6e.12xlarge` - L40S (see [aws/README.md](aws/README.md))
+- `p5.4xlarge` - 1x NVIDIA H100 (80GB); pricing varies by region
 
 The script will:
 1. Gather your cluster information (name, region, AZ, AMI) from master or worker nodes
@@ -123,12 +130,16 @@ INSTANCE_TYPE=g6.2xlarge ./infra/gpu-machineset/aws/deploy.sh
 
 # And deploy g6.4xlarge for vision models
 INSTANCE_TYPE=g6.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+
+# And deploy p5.4xlarge for H100 workloads
+INSTANCE_TYPE=p5.4xlarge ./infra/gpu-machineset/aws/deploy.sh
 ```
 
 Each instance type creates a uniquely named MachineSet to avoid conflicts:
 - g4dn.xlarge: `{clusterName}-gpu-g4dn-{az}` (e.g., `cluster-abc-gpu-g4dn-us-east-2a`)
 - g6.2xlarge: `{clusterName}-gpu-g6-{az}` (e.g., `cluster-abc-gpu-g6-us-east-2a`)
 - g6.4xlarge: `{clusterName}-gpu-g6-4x-{az}` (e.g., `cluster-abc-gpu-g6-4x-us-east-2a`)
+- p5.4xlarge: `{clusterName}-gpu-p5-4x-{az}` (e.g., `cluster-abc-gpu-p5-4x-us-east-2a`)
 
 ### 5. Verify Deployment
 
@@ -143,10 +154,12 @@ oc get machine -n openshift-machine-api -l gpu-node=true
 oc get machine -n openshift-machine-api -l gpu-instance-type=g4dn.xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.2xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.4xlarge
+oc get machine -n openshift-machine-api -l gpu-instance-type=p5.4xlarge
 
 # Or by suffix
 oc get machine -n openshift-machine-api -l gpu-type-suffix=g4dn
 oc get machine -n openshift-machine-api -l gpu-type-suffix=g6
+oc get machine -n openshift-machine-api -l gpu-type-suffix=p5-4x
 
 # Wait for GPU node to be ready (5-10 minutes)
 oc wait --for=condition=Ready nodes -l nvidia.com/gpu.present=true --timeout=600s
@@ -158,6 +171,7 @@ oc get nodes -l nvidia.com/gpu.present=true
 oc get nodes -l gpu-instance-type=g4dn.xlarge
 oc get nodes -l gpu-instance-type=g6.2xlarge
 oc get nodes -l gpu-instance-type=g6.4xlarge
+oc get nodes -l gpu-instance-type=p5.4xlarge
 
 # Check GPU detection on a specific node
 oc describe node <gpu-node-name> | grep -i gpu
@@ -179,6 +193,9 @@ oc delete application gpu-machineset-aws-g6 -n openshift-gitops
 
 # Delete g6.4xlarge deployment
 oc delete application gpu-machineset-aws-g6-4xlarge -n openshift-gitops
+
+# Delete p5.4xlarge deployment
+oc delete application gpu-machineset-aws-p5-4xlarge -n openshift-gitops
 ```
 
 **What happens when you delete the Application:**
@@ -390,7 +407,7 @@ INSTANCE_TYPE=g4dn.xlarge ./infra/gpu-machineset/aws/deploy.sh
 For direct kustomization without ArgoCD, edit `params.yaml` in the overlay:
 
 ```yaml
-instanceType: g4dn.xlarge  # or g6.2xlarge, g6.4xlarge
+instanceType: g4dn.xlarge  # or g6.2xlarge, g6.4xlarge, p5.4xlarge, ...
 replicas: 2                # Add more GPU nodes
 ```
 
@@ -405,6 +422,9 @@ kustomize build infra/gpu-machineset/aws/overlays/g6-2xlarge | oc apply -f -
 
 # For g6.4xlarge
 kustomize build infra/gpu-machineset/aws/overlays/g6-4xlarge | oc apply -f -
+
+# For p5.4xlarge
+kustomize build infra/gpu-machineset/aws/overlays/p5-4xlarge | oc apply -f -
 ```
 
 **Note:** The Kustomize approach may require manual cluster configuration. The deployment script (recommended) handles this automatically.

@@ -10,17 +10,19 @@ GPU-enabled MachineSets for AWS EC2 instances with NVIDIA GPUs.
 | g6.2xlarge | 1x L4 | 24GB | 8 | 32GB | ~$1.10 | Production, single model inference |
 | g6.4xlarge | 1x L4 | 24GB | 16 | 64GB | ~$2.15 | Large models, vision models, high throughput |
 | g6e.2xlarge | 1x L40S | 48GB | 8 | 64GB | ~$2.24 | AI inference, 3D graphics, high-memory GPU workloads |
+| p5.4xlarge | 1x H100 | 80GB | 16 | 256GB | varies | H100 training, large-model inference (confirm price and regional availability) |
 
 *Approximate on-demand pricing (us-east-1, subject to change)
 
 ## Prerequisites
 
 - OpenShift cluster on AWS
-- AWS quota for GPU instances (g4dn, g6, g6e)
+- AWS quota for GPU instances (g4dn, g6, g6e, P5)
 - Cluster in region that supports GPU instances
   - g4dn: Available in most regions
   - g6: us-east-1, us-west-2, eu-west-1, and others
   - g6e: us-east-1, us-west-2, eu-west-1, and others
+  - p5: limited regions (see [AWS P5 instance types](https://aws.amazon.com/ec2/instance-types/p5/))
 - OpenShift GitOps (ArgoCD) installed
 
 ## Usage
@@ -46,6 +48,9 @@ ROOT_VOLUME_IOPS=5000 \
 # Deploy g6e.2xlarge (NVIDIA L40S)
 INSTANCE_TYPE=g6e.2xlarge ./infra/gpu-machineset/aws/deploy.sh
 
+# Deploy p5.4xlarge (single NVIDIA H100; script defaults root volume to 200GB unless ROOT_VOLUME_SIZE is set)
+INSTANCE_TYPE=p5.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+
 # Deploy with multiple replicas (default is 1)
 INSTANCE_TYPE=g6.2xlarge \
 REPLICAS=3 \
@@ -60,7 +65,9 @@ REPLICAS=3 \
   - `g6.2xlarge` - Recommended for most workloads (~$1.10/hr)
   - `g6.4xlarge` - High-performance (~$2.15/hr)
   - `g6e.2xlarge` - High GPU memory (~$2.24/hr, 48GB L40S)
-- `ROOT_VOLUME_SIZE` - Root volume size in GB (default: `120`)
+  - `g6e.12xlarge` - 4x L40S (see `values-g6e-12xlarge.yaml`)
+  - `p5.4xlarge` - Single H100 80GB (default root volume 200GB when unset in the deploy script)
+- `ROOT_VOLUME_SIZE` - Root volume size in GB (default: `120`, or `200` for `p5.4xlarge` when unset)
 - `ROOT_VOLUME_TYPE` - Volume type: `gp3` (recommended) or `gp2` (default: `gp3`)
 - `ROOT_VOLUME_IOPS` - IOPS for gp3 volumes (default: `3000`)
 - `REPLICAS` - Number of GPU nodes (MachineSet `replicas`); default `1`
@@ -90,13 +97,15 @@ Each instance type creates a uniquely named MachineSet to avoid conflicts:
 - g6.2xlarge: `{clusterName}-gpu-g6-{az}` (e.g., `cluster-abc-gpu-g6-us-east-2a`)
 - g6.4xlarge: `{clusterName}-gpu-g6-4x-{az}` (e.g., `cluster-abc-gpu-g6-4x-us-east-2a`)
 - g6e.2xlarge: `{clusterName}-gpu-g6e-{az}` (e.g., `cluster-abc-gpu-g6e-us-east-2a`)
+- g6e.12xlarge: `{clusterName}-gpu-g6e-12xl-{az}`
+- p5.4xlarge: `{clusterName}-gpu-p5-4x-{az}`
 
 This allows you to deploy multiple GPU instance types in the same cluster simultaneously.
 
 **Machine and Node Labels:**
 Each machine and node gets labeled for easy filtering:
-- `gpu-instance-type={instanceType}` - The EC2 instance type (e.g., `g4dn.xlarge`, `g6.2xlarge`, `g6e.2xlarge`)
-- `gpu-type-suffix={suffix}` - The short suffix (e.g., `g4dn`, `g6`, `g6-4x`, `g6e`)
+- `gpu-instance-type={instanceType}` - The EC2 instance type (e.g., `g4dn.xlarge`, `g6.2xlarge`, `g6e.2xlarge`, `p5.4xlarge`)
+- `gpu-type-suffix={suffix}` - The short suffix (e.g., `g4dn`, `g6`, `g6-4x`, `g6e`, `p5-4x`)
 - `nvidia.com/gpu.present=true` - Standard GPU node label (added by GPU Operator)
 
 **AWS Instance Tags:**
@@ -121,6 +130,9 @@ INSTANCE_TYPE=g6.4xlarge ./infra/gpu-machineset/aws/deploy.sh
 
 # And deploy g6e.2xlarge for high GPU memory workloads
 INSTANCE_TYPE=g6e.2xlarge ./infra/gpu-machineset/aws/deploy.sh
+
+# And deploy p5.4xlarge for H100 workloads
+INSTANCE_TYPE=p5.4xlarge ./infra/gpu-machineset/aws/deploy.sh
 ```
 
 Then monitor with:
@@ -136,6 +148,7 @@ oc get machine -n openshift-machine-api -l gpu-instance-type=g4dn.xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.2xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.4xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6e.2xlarge
+oc get machine -n openshift-machine-api -l gpu-instance-type=p5.4xlarge
 
 # Or by suffix
 oc get machine -n openshift-machine-api -l gpu-type-suffix=g4dn
@@ -152,6 +165,7 @@ oc get nodes -l gpu-instance-type=g4dn.xlarge
 oc get nodes -l gpu-instance-type=g6.2xlarge
 oc get nodes -l gpu-instance-type=g6.4xlarge
 oc get nodes -l gpu-instance-type=g6e.2xlarge
+oc get nodes -l gpu-instance-type=p5.4xlarge
 ```
 
 ### Via Kustomize (Advanced)
@@ -159,7 +173,7 @@ oc get nodes -l gpu-instance-type=g6e.2xlarge
 For direct kustomization without ArgoCD, edit `params.yaml` in the overlay:
 
 ```yaml
-instanceType: g4dn.xlarge  # or g6.2xlarge, g6.4xlarge
+instanceType: g4dn.xlarge  # or g6.2xlarge, g6.4xlarge, p5.4xlarge, ...
 replicas: 2                # Add more GPU nodes
 ```
 
@@ -177,6 +191,12 @@ kustomize build infra/gpu-machineset/aws/overlays/g6-4xlarge | oc apply -f -
 
 # For g6e.2xlarge
 kustomize build infra/gpu-machineset/aws/overlays/g6e-2xlarge | oc apply -f -
+
+# For g6e.12xlarge
+kustomize build infra/gpu-machineset/aws/overlays/g6e-12xlarge | oc apply -f -
+
+# For p5.4xlarge
+kustomize build infra/gpu-machineset/aws/overlays/p5-4xlarge | oc apply -f -
 ```
 
 **Note:** The Kustomize approach requires manual cluster configuration. The deployment script (recommended) handles this automatically.
@@ -188,6 +208,7 @@ Approximate On-Demand pricing (subject to change):
 - **g6.2xlarge**: ~$1.10/hour (good balance of performance and cost)
 - **g6.4xlarge**: ~$2.15/hour (high performance for demanding workloads)
 - **g6e.2xlarge**: ~$2.24/hour (high GPU memory for large models)
+- **p5.4xlarge**: on-demand price varies by region (often one of the highest per-node rates; check the AWS pricing page)
 
 **Cost Savings Tips:**
 - Use Spot instances for 60-70% discount
@@ -201,6 +222,7 @@ Approximate On-Demand pricing (subject to change):
 - **g6.2xlarge**: Granite 7B, Qwen3-VL-4B, general inference
 - **g6.4xlarge**: Qwen3-VL-8B, Llama 3 8B, vision models, high-throughput scenarios
 - **g6e.2xlarge**: Large language models (13B+), multi-modal models, models requiring 48GB GPU memory
+- **p5.4xlarge**: H100-class training and inference, very large single-GPU models (80GB VRAM)
 
 ## Helm Chart Configuration
 
@@ -304,6 +326,9 @@ Available in select regions including:
 - eu-west-1, eu-central-1
 - ap-southeast-1, ap-northeast-1
 
+### p5 instances
+P5 availability is more limited than G-series GPUs. Confirm your region and Availability Zone before deploying a MachineSet.
+
 Check [AWS documentation](https://aws.amazon.com/ec2/instance-types/) for the latest regional availability.
 
 ## Performance Tips
@@ -327,5 +352,6 @@ Check [AWS documentation](https://aws.amazon.com/ec2/instance-types/) for the la
 - [AWS EC2 G4dn Instances](https://aws.amazon.com/ec2/instance-types/g4/)
 - [AWS EC2 G6 Instances](https://aws.amazon.com/ec2/instance-types/g6/)
 - [AWS EC2 G6e Instances](https://aws.amazon.com/ec2/instance-types/g6e/)
+- [AWS EC2 P5 Instances](https://aws.amazon.com/ec2/instance-types/p5/)
 - [OpenShift Machine Management on AWS](https://docs.openshift.com/container-platform/latest/machine_management/creating_machinesets/creating-machineset-aws.html)
 - [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/overview.html)

@@ -1,0 +1,18 @@
+# AWS p5.4xlarge GPU Configuration
+# 1x NVIDIA H100 Tensor Core (80GB HBM3)
+# 16 vCPUs, 256 GiB system RAM
+# On-demand pricing varies by region (often roughly $7–9/hr in us-east-1; confirm current rates)
+
+machineNameSuffix: "p5-4x"
+instanceType: p5.4xlarge
+replicas: 1
+
+rootVolume:
+  size: 200
+  type: gp3
+  iops: 3000
+
+gpu:
+  count: 1
+  memoryMb: 81920
+  vCPU: 16

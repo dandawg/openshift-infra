@@ -8,7 +8,7 @@ This repository provides production-ready infrastructure components for OpenShif
 - **GPU MachineSets**: Automated deployment of GPU-enabled nodes on AWS
 - **CPU MachineSets**: Automated deployment of high-capacity CPU worker nodes on AWS
 - **EFS / RWX Storage**: AWS EFS CSI driver operator plus `StorageClass` for ReadWriteMany volumes
-- **Multi-GPU Support**: Deploy different GPU instance types (g4dn, g6, g6e) simultaneously
+- **Multi-GPU Support**: Deploy different GPU instance types (g4dn, g6, g6e, p5) simultaneously
 - **GitOps Ready**: ArgoCD Application manifests with deployment scripts
 - **Cost Optimized**: Choose the right instance type for your workload
 
@@ -26,6 +26,7 @@ openshift-infra/
 │       ├── gpu-machineset-aws-g6.yaml
 │       ├── gpu-machineset-aws-g6-4xlarge.yaml
 │       ├── gpu-machineset-aws-g6e.yaml
+│       ├── gpu-machineset-aws-p5-4xlarge.yaml
 │       ├── cpu-machineset-aws-m6a-4xlarge.yaml
 │       └── efs-aws.yaml
 └── infra/               # Infrastructure component definitions
@@ -159,6 +160,9 @@ INSTANCE_TYPE=g4dn.xlarge ./infra/gpu-machineset/aws/deploy.sh
 # Or deploy g6e.2xlarge (high-performance)
 INSTANCE_TYPE=g6e.2xlarge ./infra/gpu-machineset/aws/deploy.sh
 
+# Or deploy p5.4xlarge (single NVIDIA H100)
+INSTANCE_TYPE=p5.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+
 # Or deploy g6.4xlarge with custom storage
 INSTANCE_TYPE=g6.4xlarge \
 ROOT_VOLUME_SIZE=200 \
@@ -217,6 +221,7 @@ argocd app sync gpu-machineset-aws-g6
 | g4dn.xlarge | 1x T4 | 16GB | 4 | 16GB | ~$0.53 | Cost-effective, embedding models, small models |
 | g6.2xlarge | 1x L4 | 24GB | 8 | 32GB | ~$1.10 | Production, single model inference |
 | g6.4xlarge | 1x L4 | 24GB | 16 | 64GB | ~$2.15 | Large models, vision models, high throughput |
+| p5.4xlarge | 1x H100 | 80GB | 16 | 256GB | varies | H100 training and large-model inference (confirm price in your region) |
 
 *Approximate on-demand pricing (us-east-1, subject to change)
 
@@ -233,12 +238,16 @@ INSTANCE_TYPE=g6.2xlarge ./infra/gpu-machineset/aws/deploy.sh
 
 # And deploy g6.4xlarge for vision models
 INSTANCE_TYPE=g6.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+
+# And deploy p5.4xlarge for H100 workloads
+INSTANCE_TYPE=p5.4xlarge ./infra/gpu-machineset/aws/deploy.sh
 ```
 
 Each instance type creates a uniquely named MachineSet to avoid conflicts:
 - g4dn.xlarge: `{clusterName}-gpu-g4dn-{az}`
 - g6.2xlarge: `{clusterName}-gpu-g6-{az}`
 - g6.4xlarge: `{clusterName}-gpu-g6-4x-{az}`
+- p5.4xlarge: `{clusterName}-gpu-p5-4x-{az}`
 
 ## Verification
 
@@ -253,6 +262,7 @@ oc get machine -n openshift-machine-api -l gpu-node=true
 oc get machine -n openshift-machine-api -l gpu-instance-type=g4dn.xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.2xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.4xlarge
+oc get machine -n openshift-machine-api -l gpu-instance-type=p5.4xlarge
 
 # Wait for GPU node to be ready (5-10 minutes)
 oc wait --for=condition=Ready nodes -l nvidia.com/gpu.present=true --timeout=600s
@@ -264,6 +274,7 @@ oc get nodes -l nvidia.com/gpu.present=true
 oc get nodes -l gpu-instance-type=g4dn.xlarge
 oc get nodes -l gpu-instance-type=g6.2xlarge
 oc get nodes -l gpu-instance-type=g6.4xlarge
+oc get nodes -l gpu-instance-type=p5.4xlarge
 ```
 
 ## Cost Management

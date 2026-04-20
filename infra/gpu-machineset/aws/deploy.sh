@@ -6,7 +6,7 @@ set -e
 
 # Default values
 INSTANCE_TYPE=${INSTANCE_TYPE:-"g6.2xlarge"}
-ROOT_VOLUME_SIZE=${ROOT_VOLUME_SIZE:-120}
+DEFAULT_ROOT_VOLUME=120
 ROOT_VOLUME_TYPE=${ROOT_VOLUME_TYPE:-"gp3"}
 ROOT_VOLUME_IOPS=${ROOT_VOLUME_IOPS:-3000}
 
@@ -44,12 +44,20 @@ case "$INSTANCE_TYPE" in
     APP_NAME="gpu-machineset-aws-g6e-12xlarge"
     MACHINE_NAME_SUFFIX="g6e-12xl"
     ;;
+  "p5.4xlarge")
+    GITOPS_FILE="gitops/infra/gpu-machineset-aws-p5-4xlarge.yaml"
+    APP_NAME="gpu-machineset-aws-p5-4xlarge"
+    MACHINE_NAME_SUFFIX="p5-4x"
+    DEFAULT_ROOT_VOLUME=200
+    ;;
   *)
     echo "Error: Unsupported INSTANCE_TYPE '$INSTANCE_TYPE'"
-    echo "Supported types: g4dn.xlarge, g6.2xlarge, g6.4xlarge, g6e.2xlarge, g6e.12xlarge"
+    echo "Supported types: g4dn.xlarge, g6.2xlarge, g6.4xlarge, g6e.2xlarge, g6e.12xlarge, p5.4xlarge"
     exit 1
     ;;
 esac
+
+ROOT_VOLUME_SIZE=${ROOT_VOLUME_SIZE:-$DEFAULT_ROOT_VOLUME}
 
 echo "==================================="
 echo "GPU MachineSet Deployment"

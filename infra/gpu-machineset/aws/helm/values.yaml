@@ -37,3 +37,4 @@ taints:
 # g4dn.xlarge: 1x NVIDIA T4 (16GB), 4 vCPU, 16GB RAM, ~$0.53/hr
 # g6.2xlarge: 1x NVIDIA L4 (24GB), 8 vCPU, 32GB RAM, ~$1.10/hr
 # g6.4xlarge: 1x NVIDIA L4 (24GB), 16 vCPU, 64GB RAM, ~$2.15/hr
+# p5.4xlarge: 1x NVIDIA H100 (80GB HBM3), 16 vCPU, 256 GiB RAM (pricing varies by region)
