@@ -84,11 +84,14 @@ uv run ./infra/machineset/aws/deploy.py --instance-type g6.4xlarge
 # Deploy p5.4xlarge (single NVIDIA H100); default root volume 200GB for this type unless overridden
 uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge
 
+# Same, but force an AZ when AWS reports no capacity in the worker's AZ (e.g. use us-east-2a instead of 2b)
+uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge --availability-zone us-east-2a
+
 # Deploy with multiple replicas (default is 1)
 uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge --replicas 3
 ```
 
-**GPU worker options (flags and env vars):** `--instance-type` / `INSTANCE_TYPE`, `--root-volume-size` / `ROOT_VOLUME_SIZE`, `--root-volume-type` / `ROOT_VOLUME_TYPE`, `--root-volume-iops` / `ROOT_VOLUME_IOPS`, `--replicas` / `REPLICAS`, `--replica-count` / `REPLICA_COUNT`.
+**GPU worker options (flags and env vars):** `--instance-type` / `INSTANCE_TYPE`, `--availability-zone` / `AVAILABILITY_ZONE` (optional; when unset, AZ is taken from the first worker machine), `--root-volume-size` / `ROOT_VOLUME_SIZE`, `--root-volume-type` / `ROOT_VOLUME_TYPE`, `--root-volume-iops` / `ROOT_VOLUME_IOPS`, `--replicas` / `REPLICAS`, `--replica-count` / `REPLICA_COUNT`. The legacy `deploy.sh` also honors `AVAILABILITY_ZONE` when set.
 
 **Available instance types:**
 - `g4dn.xlarge` - 1x T4 GPU, most cost-effective (~$0.53/hr)

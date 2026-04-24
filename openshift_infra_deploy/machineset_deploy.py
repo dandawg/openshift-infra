@@ -1,3 +1,4 @@
+import subprocess
 from dataclasses import dataclass
 from typing import Literal
 
@@ -98,7 +99,8 @@ def machineset_unified_help_epilog() -> str:
         "Supported --instance-type values (GPU vs CPU is inferred from the type):\n\n"
         f"  gpu: {gpu_csv}\n\n"
         f"  cpu: {cpu_csv}\n\n"
-        "Use --list-instance-types for one line per type with a gpu/cpu prefix."
+        "Use --list-instance-types for one line per type with a gpu/cpu prefix.\n\n"
+        "Optional: --availability-zone / AVAILABILITY_ZONE overrides the AZ inferred from workers."
     )
 
 
@@ -144,6 +146,7 @@ def deploy_aws_machineset(
     replicas: int,
     wait_hint_lines: list[str],
     bootstrap_hint: str | None = None,
+    availability_zone: str | None = None,
 ) -> None:
     root = openshift_infra_root()
     gitops_path = root / profile.gitops_relative
@@ -158,7 +161,7 @@ def deploy_aws_machineset(
 
     print("Step 1: Gathering cluster information...")
     try:
-        ctx = gather_aws_cluster_context()
+        ctx = gather_aws_cluster_context(availability_zone=availability_zone)
     except RuntimeError as e:
         raise SystemExit(f"Error: {e}") from e
 
@@ -208,9 +211,26 @@ def deploy_aws_machineset(
     print("  Parameters configured")
     print()
 
+    # Sync manually before enabling automated sync. Enabling automated policy first
+    # starts a background sync; an immediate `argocd app sync` then races and often
+    # fails with exit 20 ("another operation is already in progress"). Same order as
+    # infra/efs/aws/deploy.sh.
     print("Step 5: Syncing application...")
-    argocd_app_enable_autosync(profile.app_name)
-    argocd_app_sync(profile.app_name)
+    try:
+        argocd_app_sync(profile.app_name)
+    except subprocess.CalledProcessError as e:
+        detail = (e.stderr or e.stdout or "").strip()
+        parts = [
+            "argocd app sync failed.",
+            detail if detail else None,
+            f"Try: argocd app get {profile.app_name}",
+            "If the message mentions another operation in progress, wait a few seconds and retry.",
+        ]
+        raise SystemExit("\n".join(p for p in parts if p)) from e
+    try:
+        argocd_app_enable_autosync(profile.app_name)
+    except subprocess.CalledProcessError:
+        pass
     print("  Application synced")
     print()
 

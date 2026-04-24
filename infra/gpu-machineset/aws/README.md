@@ -48,6 +48,9 @@ uv run ./infra/machineset/aws/deploy.py --instance-type g6e.2xlarge
 # Deploy p5.4xlarge (single NVIDIA H100; default root volume 200GB for this type unless overridden)
 uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge
 
+# Same, but pin an AZ when AWS reports insufficient capacity in the worker's AZ (example: us-east-2a)
+uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge --availability-zone us-east-2a
+
 # Deploy with multiple replicas (default is 1)
 uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge --replicas 3
 
@@ -67,9 +70,10 @@ uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge --replicas 3
 - `--root-volume-iops` / `ROOT_VOLUME_IOPS` - IOPS for gp3 volumes (default: `3000`)
 - `--replicas` / `REPLICAS` - Number of GPU nodes (MachineSet `replicas`); default `1`
 - `--replica-count` / `REPLICA_COUNT` - Used when `--replicas` / `REPLICAS` is unset
+- `--availability-zone` / `AVAILABILITY_ZONE` - AWS AZ for the MachineSet (e.g. `us-east-2a`); when unset, uses the AZ of the first worker Machine
 
 The tool automatically:
-1. Gathers your cluster information (name, region, AZ, AMI)
+1. Gathers your cluster information (name, region, AZ unless overridden, AMI)
 2. Logs in to ArgoCD
 3. Creates the ArgoCD Application
 4. Sets cluster-specific Helm parameters
@@ -276,6 +280,24 @@ Common causes:
 - Instance type not available in AZ
 - IAM permissions issue
 - Insufficient AWS capacity
+
+### `InsufficientInstanceCapacity` for a specific AZ (common on p5 and other scarce types)
+
+AWS may report that an instance type has no capacity in the **Availability Zone** your MachineSet uses (for example `us-east-2b`), while other AZs in the same region still have capacity.
+
+OpenShift AWS MachineSets **always** target one AZ: the Helm chart sets `placement.availabilityZone` and the **private subnet for that AZ** (`<infraID>-subnet-private-<az>`). That is different from a standalone EC2 request with no subnet, where AWS can pick an AZ for you. **Omitting the AZ is not supported** by this chart without a larger redesign (and multi-AZ floating placement is not how IPI worker subnets are modeled).
+
+**What to do:** Redeploy the same Argo CD application with a different AZ that has capacity (for example `us-east-2a` or `us-east-2c` if AWS suggested those). The MachineSet **name** includes the AZ, so Argo CD will reconcile to a **new** MachineSet resource; scale the old one to zero or let sync replace it after you confirm the new AZ.
+
+```bash
+# Bash deploy script (respects AVAILABILITY_ZONE if already set)
+AVAILABILITY_ZONE=us-east-2a INSTANCE_TYPE=p5.4xlarge ./infra/gpu-machineset/aws/deploy.sh
+
+# Or the Python entrypoint (same env var or --availability-zone)
+uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge --availability-zone us-east-2a
+```
+
+Alternatively, after logging in to `argocd`: `argocd app set gpu-machineset-aws-p5-4xlarge -p availabilityZone=us-east-2a` then sync (same effect as above if other parameters stay the same).
 
 ### Node Doesn't Show GPU
 

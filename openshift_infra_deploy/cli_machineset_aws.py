@@ -28,6 +28,16 @@ from openshift_infra_deploy.machineset_deploy import (
     help="EC2 instance type; GPU vs CPU is inferred (see epilog).",
 )
 @click.option(
+    "--availability-zone",
+    "availability_zone_opt",
+    envvar="AVAILABILITY_ZONE",
+    default=None,
+    help=(
+        "AWS availability zone for the MachineSet (e.g. us-east-2a). "
+        "When omitted, uses the AZ of the first worker Machine (same as deploy.sh)."
+    ),
+)
+@click.option(
     "--root-volume-size",
     envvar="ROOT_VOLUME_SIZE",
     type=int,
@@ -65,6 +75,7 @@ from openshift_infra_deploy.machineset_deploy import (
 def main(
     list_instance_types: bool,
     instance_type: str,
+    availability_zone_opt: str | None,
     root_volume_size: int | None,
     root_volume_type: str,
     root_volume_iops: int,
@@ -98,4 +109,5 @@ def main(
         replicas=replicas,
         wait_hint_lines=wait_hint_lines_for_kind(kind),
         bootstrap_hint=bootstrap,
+        availability_zone=availability_zone_opt,
     )

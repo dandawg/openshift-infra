@@ -117,10 +117,13 @@ argocd app set $APP_NAME \
 echo "  Parameters configured"
 echo ""
 
-# Step 5: Enable auto-sync and sync
+# Step 5: Manual sync first, then automated policy (avoids race: background sync + sync → exit 20).
 echo "Step 5: Syncing application..."
-argocd app set $APP_NAME --sync-policy automated --auto-prune --self-heal > /dev/null 2>&1
-argocd app sync $APP_NAME > /dev/null 2>&1
+if ! argocd app sync "$APP_NAME"; then
+  echo "Error: argocd app sync failed. Try: argocd app get $APP_NAME"
+  exit 1
+fi
+argocd app set "$APP_NAME" --sync-policy automated --auto-prune --self-heal >/dev/null 2>&1 || true
 echo "  Application synced"
 echo ""
 

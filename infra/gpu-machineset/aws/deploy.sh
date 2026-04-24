@@ -73,11 +73,16 @@ echo "Step 1: Gathering cluster information..."
 CLUSTER_NAME=$(oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')
 REGION=$(oc get infrastructure cluster -o jsonpath='{.status.platformStatus.aws.region}')
 
-# Try to get availability zone from worker machines first, fallback to master machines
-AVAILABILITY_ZONE=$(oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machine-role=worker -o jsonpath='{.items[0].spec.providerSpec.value.placement.availabilityZone}' 2>/dev/null || true)
-if [ -z "$AVAILABILITY_ZONE" ]; then
-  echo "  No worker machines found, using master node configuration..."
-  AVAILABILITY_ZONE=$(oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machine-role=master -o jsonpath='{.items[0].spec.providerSpec.value.placement.availabilityZone}')
+# Availability zone: use AVAILABILITY_ZONE from the environment if set (e.g. capacity only in another AZ),
+# otherwise infer from worker machines, then masters (same behavior as deploy.py / gather_aws_cluster_context).
+if [ -z "${AVAILABILITY_ZONE:-}" ]; then
+  AVAILABILITY_ZONE=$(oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machine-role=worker -o jsonpath='{.items[0].spec.providerSpec.value.placement.availabilityZone}' 2>/dev/null || true)
+  if [ -z "$AVAILABILITY_ZONE" ]; then
+    echo "  No worker machines found, using master node configuration..."
+    AVAILABILITY_ZONE=$(oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machine-role=master -o jsonpath='{.items[0].spec.providerSpec.value.placement.availabilityZone}')
+  fi
+else
+  echo "  Using AVAILABILITY_ZONE from environment (not inferring from worker machines)."
 fi
 
 INFRA_ID=$(oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')
@@ -143,10 +148,13 @@ argocd app set $APP_NAME \
 echo "  Parameters configured"
 echo ""
 
-# Step 5: Enable auto-sync and sync
+# Step 5: Manual sync first, then automated policy (avoids race: background sync + sync → exit 20).
 echo "Step 5: Syncing application..."
-argocd app set $APP_NAME --sync-policy automated --auto-prune --self-heal > /dev/null 2>&1
-argocd app sync $APP_NAME > /dev/null 2>&1
+if ! argocd app sync "$APP_NAME"; then
+  echo "Error: argocd app sync failed. Try: argocd app get $APP_NAME"
+  exit 1
+fi
+argocd app set "$APP_NAME" --sync-policy automated --auto-prune --self-heal >/dev/null 2>&1 || true
 echo "  Application synced"
 echo ""
 

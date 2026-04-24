@@ -19,7 +19,15 @@ def _oc_jsonpath(args: list[str]) -> str:
     return (p.stdout or "").strip()
 
 
-def gather_aws_cluster_context() -> AwsClusterContext:
+def _try_oc_jsonpath(args: list[str]) -> str:
+    """Like _oc_jsonpath but returns \"\" if oc fails (e.g. empty .items[0] jsonpath)."""
+    p = run_cmd(["oc", *args], capture_output=True, check=False)
+    if p.returncode != 0:
+        return ""
+    return (p.stdout or "").strip()
+
+
+def gather_aws_cluster_context(availability_zone: str | None = None) -> AwsClusterContext:
     cluster_name = _oc_jsonpath(
         ["get", "infrastructure", "cluster", "-o", "jsonpath={.status.infrastructureName}"]
     )
@@ -36,37 +44,43 @@ def gather_aws_cluster_context() -> AwsClusterContext:
         ["get", "infrastructure", "cluster", "-o", "jsonpath={.status.infrastructureName}"]
     )
 
-    az = _oc_jsonpath(
-        [
-            "get",
-            "machines",
-            "-n",
-            "openshift-machine-api",
-            "-l",
-            "machine.openshift.io/cluster-api-machine-role=worker",
-            "-o",
-            "jsonpath={.items[0].spec.providerSpec.value.placement.availabilityZone}",
-        ]
-    )
-    if not az:
-        print("  No worker machines found, using master node configuration...")
-        az = _oc_jsonpath(
+    if availability_zone is not None:
+        az = availability_zone.strip()
+        if not az:
+            raise RuntimeError("availability_zone override is empty after stripping whitespace")
+        print("  Using availability zone from CLI/env (not inferring from worker machines).")
+    else:
+        az = _try_oc_jsonpath(
             [
                 "get",
                 "machines",
                 "-n",
                 "openshift-machine-api",
                 "-l",
-                "machine.openshift.io/cluster-api-machine-role=master",
+                "machine.openshift.io/cluster-api-machine-role=worker",
                 "-o",
                 "jsonpath={.items[0].spec.providerSpec.value.placement.availabilityZone}",
             ]
         )
+        if not az:
+            print("  No worker machines found, using master node configuration...")
+            az = _try_oc_jsonpath(
+                [
+                    "get",
+                    "machines",
+                    "-n",
+                    "openshift-machine-api",
+                    "-l",
+                    "machine.openshift.io/cluster-api-machine-role=master",
+                    "-o",
+                    "jsonpath={.items[0].spec.providerSpec.value.placement.availabilityZone}",
+                ]
+            )
 
     ami_id = _ami_from_machinesets()
     if not ami_id:
         print("  No machinesets found, using machine AMI configuration...")
-        ami_id = _oc_jsonpath(
+        ami_id = _try_oc_jsonpath(
             [
                 "get",
                 "machines",
