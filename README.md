@@ -175,7 +175,7 @@ uv run ./infra/machineset/aws/deploy.py --instance-type g4dn.xlarge
 # Or deploy g6e.2xlarge (high-performance)
 uv run ./infra/machineset/aws/deploy.py --instance-type g6e.2xlarge
 
-# Or deploy p5.4xlarge (single NVIDIA H100)
+# Or deploy p5.4xlarge (single NVIDIA H100) — see availability note below
 uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge
 
 # Or deploy g6.4xlarge with custom storage
@@ -237,6 +237,8 @@ argocd app sync gpu-machineset-aws-g6
 
 *Approximate on-demand pricing (us-east-1, subject to change)
 
+**P5.4xlarge availability:** Unfortunately, **`p5.4xlarge` is often not generally available** in practice—capacity is limited, and the offering may be missing in specific regions or AZs. In particular, at least in **`us-east-2`**, expect difficulty provisioning or finding this type on demand. Check which types your region and AZ offer (for example `DescribeInstanceTypeOfferings` in the [EC2 API](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstanceTypeOfferings.html)) in your target region and AZ, or use another GPU type from the table (for example `g6e.2xlarge` for higher-end single-GPU workloads) when you need reliable provisioning.
+
 ### Deploy Multiple GPU Types
 
 You can deploy multiple GPU instance types simultaneously:
@@ -251,7 +253,7 @@ uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge
 # And deploy g6.4xlarge for vision models
 uv run ./infra/machineset/aws/deploy.py --instance-type g6.4xlarge
 
-# And deploy p5.4xlarge for H100 workloads
+# And deploy p5.4xlarge for H100 workloads (see P5.4xlarge availability note above)
 uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge
 ```
 
