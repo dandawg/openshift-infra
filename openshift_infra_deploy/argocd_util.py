@@ -1,8 +1,11 @@
 import base64
 import subprocess
+import time
 from pathlib import Path
 
 from openshift_infra_deploy.subprocess_util import run_cmd
+
+_ARGOCD_OP_IN_PROGRESS = 20
 
 
 def argocd_admin_login() -> str:
@@ -138,11 +141,26 @@ def oc_apply_gitops_manifest(path: Path) -> None:
     run_cmd(["oc", "apply", "-f", str(path)])
 
 
-def argocd_app_set_params(app_name: str, params: list[tuple[str, str]]) -> None:
+def argocd_app_set_params(
+    app_name: str,
+    params: list[tuple[str, str]],
+    *,
+    retries: int = 5,
+    retry_delay: float = 5.0,
+) -> None:
+    """Set Helm parameters on an Argo CD app, retrying on exit 20 (operation in progress)."""
     args: list[str] = ["argocd", "app", "set", app_name]
     for k, v in params:
         args.extend(["-p", f"{k}={v}"])
-    run_cmd(args, capture_output=True)
+    for attempt in range(retries):
+        try:
+            run_cmd(args, capture_output=True)
+            return
+        except subprocess.CalledProcessError as e:
+            if e.returncode == _ARGOCD_OP_IN_PROGRESS and attempt < retries - 1:
+                time.sleep(retry_delay)
+                continue
+            raise
 
 
 def argocd_app_sync(app_name: str, *, silent: bool = True) -> None:

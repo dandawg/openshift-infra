@@ -29,6 +29,12 @@ GPU_PROFILES: dict[str, MachineSetProfile] = {
         "g4dn",
         120,
     ),
+    "g4dn.12xlarge": MachineSetProfile(
+        "gitops/infra/gpu-machineset-aws-g4dn-12xlarge.yaml",
+        "gpu-machineset-aws-g4dn-12xlarge",
+        "g4dn-12xl",
+        200,
+    ),
     "g6.2xlarge": MachineSetProfile(
         "gitops/infra/gpu-machineset-aws-g6.yaml",
         "gpu-machineset-aws-g6",

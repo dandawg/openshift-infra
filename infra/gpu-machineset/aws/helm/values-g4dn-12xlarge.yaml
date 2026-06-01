@@ -1,0 +1,18 @@
+# AWS g4dn.12xlarge GPU Configuration
+# 4x NVIDIA T4 (16GB GDDR6 each, 64GB total VRAM)
+# 48 vCPUs, 192 GiB RAM
+# Cost: ~$3.912/hour (on-demand, us-east-1)
+
+machineNameSuffix: "g4dn-12xl"
+instanceType: g4dn.12xlarge
+replicas: 1
+
+rootVolume:
+  size: 200
+  type: gp3
+  iops: 3000
+
+gpu:
+  count: 4
+  memoryMb: 16384
+  vCPU: 48
