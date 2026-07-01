@@ -17,6 +17,29 @@ echo "📦 Installing OpenShift GitOps Operator..."
 oc apply -k bootstrap/gitops-operator/base/
 
 echo "⏳ Waiting for GitOps Operator to be ready..."
+# OLM sometimes bundles the GitOps install plan with other subscriptions that have
+# Manual approval (e.g. a pinned CloudNativePG). When that happens the shared
+# InstallPlan lands in RequiresApproval and nothing installs until it is approved.
+# Detect and approve that plan automatically so bootstrap is not blocked.
+echo "  Checking for blocked InstallPlan..."
+for attempt in $(seq 1 12); do
+  gitops_ip=$(oc get subscription openshift-gitops-operator -n openshift-operators \
+    -o jsonpath='{.status.installPlanRef.name}' 2>/dev/null || true)
+  if [ -n "$gitops_ip" ]; then
+    ip_phase=$(oc get installplan "$gitops_ip" -n openshift-operators \
+      -o jsonpath='{.status.phase}' 2>/dev/null || true)
+    if [ "$ip_phase" = "RequiresApproval" ]; then
+      echo "  ⚠️  InstallPlan $gitops_ip is RequiresApproval (likely shared with a Manual-approval subscription)."
+      echo "     Auto-approving so GitOps installation can proceed..."
+      oc patch installplan "$gitops_ip" -n openshift-operators \
+        --type merge --patch '{"spec":{"approved":true}}'
+      echo "  ✅ InstallPlan approved."
+    fi
+    break
+  fi
+  sleep 5
+done
+
 # oc wait fails immediately if the Deployment does not exist yet; OLM creates it
 # after the Subscription reconciles. Poll until it appears, then wait for Available.
 # Newer GitOps defaults may place the operator in openshift-gitops-operator; older
