@@ -141,6 +141,14 @@ def oc_apply_gitops_manifest(path: Path) -> None:
     run_cmd(["oc", "apply", "-f", str(path)])
 
 
+def argocd_app_wait_operation(app_name: str, *, timeout: int = 120) -> None:
+    """Block until any running operation on the app completes (or timeout expires)."""
+    run_cmd(
+        ["argocd", "app", "wait", app_name, "--operation", f"--timeout={timeout}"],
+        capture_output=True,
+    )
+
+
 def argocd_app_set_params(
     app_name: str,
     params: list[tuple[str, str]],
@@ -158,7 +166,10 @@ def argocd_app_set_params(
             return
         except subprocess.CalledProcessError as e:
             if e.returncode == _ARGOCD_OP_IN_PROGRESS and attempt < retries - 1:
-                time.sleep(retry_delay)
+                try:
+                    argocd_app_wait_operation(app_name)
+                except subprocess.CalledProcessError:
+                    time.sleep(retry_delay)
                 continue
             raise
 
