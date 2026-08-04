@@ -64,14 +64,29 @@ openshift-infra/
 
 ### Deploy CLIs (uv)
 
-From the repository root, install dependencies and run a deploy CLI:
+From the repository root, install dependencies:
 
 ```bash
 uv sync
-uv run ./infra/machineset/aws/deploy.py --help
 ```
 
-Optional global commands after `uv tool install .` in this directory: `openshift-infra-machineset-aws`, `openshift-infra-efs-aws` (each supports `--help`).
+The package installs two CLI commands you can use after activating the virtualenv:
+
+```bash
+source .venv/bin/activate
+
+openshift-infra-machineset-aws --help   # GPU + CPU MachineSet deploy
+openshift-infra-efs-aws --help          # EFS / RWX storage deploy
+```
+
+Or run without activating:
+
+```bash
+uv run openshift-infra-machineset-aws --help
+uv run openshift-infra-efs-aws --help
+```
+
+You can also invoke the underlying scripts directly with `uv run ./infra/machineset/aws/deploy.py` or `uv run ./infra/efs/aws/deploy.py`.
 
 ### Install OpenShift GitOps (if needed)
 
