@@ -7,6 +7,7 @@ GPU-enabled MachineSets for AWS EC2 instances with NVIDIA GPUs.
 | Instance Type | GPUs | GPU Memory | vCPUs | RAM | Cost/hr* | Use Case |
 |---------------|------|------------|-------|-----|----------|----------|
 | g4dn.xlarge | 1x T4 | 16GB | 4 | 16GB | ~$0.53 | Cost-effective, embedding models, small models |
+| g5.2xlarge | 1x A10G | 24GB | 8 | 32GB | ~$1.21 | ML inference, graphics, video transcoding |
 | g6.2xlarge | 1x L4 | 24GB | 8 | 32GB | ~$1.10 | Production, single model inference |
 | g6.4xlarge | 1x L4 | 24GB | 16 | 64GB | ~$2.15 | Large models, vision models, high throughput |
 | g6e.2xlarge | 1x L40S | 48GB | 8 | 64GB | ~$2.24 | AI inference, 3D graphics, high-memory GPU workloads |
@@ -17,9 +18,10 @@ GPU-enabled MachineSets for AWS EC2 instances with NVIDIA GPUs.
 ## Prerequisites
 
 - OpenShift cluster on AWS
-- AWS quota for GPU instances (g4dn, g6, g6e, P5)
+- AWS quota for GPU instances (g4dn, g5, g6, g6e, P5)
 - Cluster in region that supports GPU instances
   - g4dn: Available in most regions
+  - g5: Available in most regions
   - g6: us-east-1, us-west-2, eu-west-1, and others
   - g6e: us-east-1, us-west-2, eu-west-1, and others
   - p5: limited regions (see [AWS P5 instance types](https://aws.amazon.com/ec2/instance-types/p5/))
@@ -37,6 +39,9 @@ uv run ./infra/machineset/aws/deploy.py
 
 # Deploy g4dn.xlarge (most cost-effective)
 uv run ./infra/machineset/aws/deploy.py --instance-type g4dn.xlarge
+
+# Deploy g5.2xlarge (NVIDIA A10G)
+uv run ./infra/machineset/aws/deploy.py --instance-type g5.2xlarge
 
 # Deploy g6.4xlarge with custom storage
 uv run ./infra/machineset/aws/deploy.py --instance-type g6.4xlarge \
@@ -60,6 +65,7 @@ uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge --replicas 3
 **Configuration options (CLI flags and environment variables):**
 - `--instance-type` / `INSTANCE_TYPE` - Instance type (default: `g6.2xlarge`)
   - `g4dn.xlarge` - Most cost-effective (~$0.53/hr)
+  - `g5.2xlarge` - NVIDIA A10G (~$1.21/hr, 24GB A10G)
   - `g6.2xlarge` - Recommended for most workloads (~$1.10/hr)
   - `g6.4xlarge` - High-performance (~$2.15/hr)
   - `g6e.2xlarge` - High GPU memory (~$2.24/hr, 48GB L40S)
@@ -93,6 +99,7 @@ oc scale machineset <machineset-name> --replicas=3 -n openshift-machine-api
 **MachineSet Naming:**
 Each instance type creates a uniquely named MachineSet to avoid conflicts:
 - g4dn.xlarge: `{clusterName}-gpu-g4dn-{az}` (e.g., `cluster-abc-gpu-g4dn-us-east-2a`)
+- g5.2xlarge: `{clusterName}-gpu-g5-{az}` (e.g., `cluster-abc-gpu-g5-us-east-2a`)
 - g6.2xlarge: `{clusterName}-gpu-g6-{az}` (e.g., `cluster-abc-gpu-g6-us-east-2a`)
 - g6.4xlarge: `{clusterName}-gpu-g6-4x-{az}` (e.g., `cluster-abc-gpu-g6-4x-us-east-2a`)
 - g6e.2xlarge: `{clusterName}-gpu-g6e-{az}` (e.g., `cluster-abc-gpu-g6e-us-east-2a`)
@@ -121,6 +128,9 @@ You can deploy multiple GPU instance types simultaneously for different workload
 # Deploy cost-effective g4dn for embedding models
 uv run ./infra/machineset/aws/deploy.py --instance-type g4dn.xlarge
 
+# Deploy g5.2xlarge for A10G workloads
+uv run ./infra/machineset/aws/deploy.py --instance-type g5.2xlarge
+
 # Also deploy g6.2xlarge for production inference
 uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge
 
@@ -144,6 +154,7 @@ oc get machine -n openshift-machine-api -l gpu-node=true
 
 # View machines by instance type
 oc get machine -n openshift-machine-api -l gpu-instance-type=g4dn.xlarge
+oc get machine -n openshift-machine-api -l gpu-instance-type=g5.2xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.2xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.4xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6e.2xlarge
@@ -151,6 +162,7 @@ oc get machine -n openshift-machine-api -l gpu-instance-type=p5.4xlarge
 
 # Or by suffix
 oc get machine -n openshift-machine-api -l gpu-type-suffix=g4dn
+oc get machine -n openshift-machine-api -l gpu-type-suffix=g5
 oc get machine -n openshift-machine-api -l gpu-type-suffix=g6
 
 # Wait for GPU node to be ready (5-10 minutes)
@@ -161,6 +173,7 @@ oc get nodes -l nvidia.com/gpu.present=true
 
 # View nodes by instance type
 oc get nodes -l gpu-instance-type=g4dn.xlarge
+oc get nodes -l gpu-instance-type=g5.2xlarge
 oc get nodes -l gpu-instance-type=g6.2xlarge
 oc get nodes -l gpu-instance-type=g6.4xlarge
 oc get nodes -l gpu-instance-type=g6e.2xlarge
@@ -188,6 +201,9 @@ kustomize build infra/gpu-machineset/aws/overlays/g6-2xlarge | oc apply -f -
 # For g6.4xlarge
 kustomize build infra/gpu-machineset/aws/overlays/g6-4xlarge | oc apply -f -
 
+# For g5.2xlarge
+kustomize build infra/gpu-machineset/aws/overlays/g5-2xlarge | oc apply -f -
+
 # For g6e.2xlarge
 kustomize build infra/gpu-machineset/aws/overlays/g6e-2xlarge | oc apply -f -
 
@@ -204,6 +220,7 @@ kustomize build infra/gpu-machineset/aws/overlays/p5-4xlarge | oc apply -f -
 
 Approximate On-Demand pricing (subject to change):
 - **g4dn.xlarge**: ~$0.53/hour (best value for cost-conscious workloads)
+- **g5.2xlarge**: ~$1.21/hour (A10G GPU, good availability across regions)
 - **g6.2xlarge**: ~$1.10/hour (good balance of performance and cost)
 - **g6.4xlarge**: ~$2.15/hour (high performance for demanding workloads)
 - **g6e.2xlarge**: ~$2.24/hour (high GPU memory for large models)
@@ -218,6 +235,7 @@ Approximate On-Demand pricing (subject to change):
 
 **Model Recommendations by Instance:**
 - **g4dn.xlarge**: Qwen3-VL-Embedding-2B, small 7B models, embedding workloads
+- **g5.2xlarge**: Granite 7B, Llama 3 8B, general inference (A10G 24GB)
 - **g6.2xlarge**: Granite 7B, Qwen3-VL-4B, general inference
 - **g6.4xlarge**: Qwen3-VL-8B, Llama 3 8B, vision models, high-throughput scenarios
 - **g6e.2xlarge**: Large language models (13B+), multi-modal models, models requiring 48GB GPU memory
@@ -331,6 +349,12 @@ Available in most AWS regions including:
 - eu-west-1, eu-central-1
 - ap-southeast-1, ap-northeast-1
 
+### g5 instances
+Available in most AWS regions including:
+- us-east-1, us-east-2, us-west-1, us-west-2
+- eu-west-1, eu-central-1
+- ap-southeast-1, ap-northeast-1
+
 ### g6 instances
 Available in select regions including:
 - us-east-1, us-west-2
@@ -367,6 +391,7 @@ Check [AWS documentation](https://aws.amazon.com/ec2/instance-types/) for the la
 ## References
 
 - [AWS EC2 G4dn Instances](https://aws.amazon.com/ec2/instance-types/g4/)
+- [AWS EC2 G5 Instances](https://aws.amazon.com/ec2/instance-types/g5/)
 - [AWS EC2 G6 Instances](https://aws.amazon.com/ec2/instance-types/g6/)
 - [AWS EC2 G6e Instances](https://aws.amazon.com/ec2/instance-types/g6e/)
 - [AWS EC2 P5 Instances](https://aws.amazon.com/ec2/instance-types/p5/)

@@ -1,0 +1,18 @@
+# AWS g5.2xlarge GPU Configuration
+# 1x NVIDIA A10G (24GB GDDR6)
+# 8 vCPUs, 32 GB RAM
+# Cost: ~$1.21/hour (on-demand, us-east-1)
+
+machineNameSuffix: "g5"
+instanceType: g5.2xlarge
+replicas: 1
+
+rootVolume:
+  size: 120
+  type: gp3
+  iops: 3000
+
+gpu:
+  count: 1
+  memoryMb: 24576
+  vCPU: 8

@@ -22,6 +22,7 @@ gpu-machineset/
     │   ├── Chart.yaml
     │   ├── values.yaml
     │   ├── values-g4dn-xlarge.yaml
+    │   ├── values-g5-2xlarge.yaml
     │   ├── values-g6-2xlarge.yaml
     │   ├── values-g6-4xlarge.yaml
     │   ├── values-p5-4xlarge.yaml
@@ -29,6 +30,7 @@ gpu-machineset/
     │       └── machineset.yaml
     └── overlays/         # Kustomize overlays (advanced)
         ├── g4dn-xlarge/
+        ├── g5-2xlarge/
         ├── g6-2xlarge/
         ├── g6-4xlarge/
         └── p5-4xlarge/
@@ -74,6 +76,9 @@ uv run ./infra/machineset/aws/deploy.py
 # Deploy g4dn.xlarge (most cost-effective)
 uv run ./infra/machineset/aws/deploy.py --instance-type g4dn.xlarge --root-volume-size 100
 
+# Deploy g5.2xlarge (NVIDIA A10G)
+uv run ./infra/machineset/aws/deploy.py --instance-type g5.2xlarge
+
 # Deploy g6.2xlarge with custom storage
 uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge \
   --root-volume-size 200 --root-volume-type gp3 --root-volume-iops 5000
@@ -95,6 +100,7 @@ uv run ./infra/machineset/aws/deploy.py --instance-type g6.2xlarge --replicas 3
 
 **Available instance types:**
 - `g4dn.xlarge` - 1x T4 GPU, most cost-effective (~$0.53/hr)
+- `g5.2xlarge` - 1x A10G GPU, broad regional availability (~$1.21/hr)
 - `g6.2xlarge` - 1x L4 GPU, recommended for most workloads (~$1.10/hr)
 - `g6.4xlarge` - 1x L4 GPU, high-performance (~$2.15/hr)
 - `g6e.2xlarge`, `g6e.12xlarge` - L40S (see [aws/README.md](aws/README.md))
@@ -127,6 +133,7 @@ uv run ./infra/machineset/aws/deploy.py --instance-type p5.4xlarge
 
 Each instance type creates a uniquely named MachineSet to avoid conflicts:
 - g4dn.xlarge: `{clusterName}-gpu-g4dn-{az}` (e.g., `cluster-abc-gpu-g4dn-us-east-2a`)
+- g5.2xlarge: `{clusterName}-gpu-g5-{az}` (e.g., `cluster-abc-gpu-g5-us-east-2a`)
 - g6.2xlarge: `{clusterName}-gpu-g6-{az}` (e.g., `cluster-abc-gpu-g6-us-east-2a`)
 - g6.4xlarge: `{clusterName}-gpu-g6-4x-{az}` (e.g., `cluster-abc-gpu-g6-4x-us-east-2a`)
 - p5.4xlarge: `{clusterName}-gpu-p5-4x-{az}` (e.g., `cluster-abc-gpu-p5-4x-us-east-2a`)
@@ -142,12 +149,14 @@ oc get machine -n openshift-machine-api -l gpu-node=true
 
 # View machines by instance type
 oc get machine -n openshift-machine-api -l gpu-instance-type=g4dn.xlarge
+oc get machine -n openshift-machine-api -l gpu-instance-type=g5.2xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.2xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=g6.4xlarge
 oc get machine -n openshift-machine-api -l gpu-instance-type=p5.4xlarge
 
 # Or by suffix
 oc get machine -n openshift-machine-api -l gpu-type-suffix=g4dn
+oc get machine -n openshift-machine-api -l gpu-type-suffix=g5
 oc get machine -n openshift-machine-api -l gpu-type-suffix=g6
 oc get machine -n openshift-machine-api -l gpu-type-suffix=p5-4x
 
@@ -159,6 +168,7 @@ oc get nodes -l nvidia.com/gpu.present=true
 
 # View nodes by instance type
 oc get nodes -l gpu-instance-type=g4dn.xlarge
+oc get nodes -l gpu-instance-type=g5.2xlarge
 oc get nodes -l gpu-instance-type=g6.2xlarge
 oc get nodes -l gpu-instance-type=g6.4xlarge
 oc get nodes -l gpu-instance-type=p5.4xlarge
@@ -315,6 +325,7 @@ The operator provides:
 | Cloud | Instance | GPUs | $/hour (approx) | Best For |
 |-------|----------|------|-----------------|----------|
 | AWS | g4dn.xlarge | 1x T4 | $0.53 | Cost-effective, embeddings, small models |
+| AWS | g5.2xlarge | 1x A10G | $1.21 | ML inference, graphics, video transcoding |
 | AWS | g6.2xlarge | 1x L4 | $1.10 | Production, single model inference |
 | AWS | g6.4xlarge | 1x L4 | $2.15 | Large models, vision, high throughput |
 
@@ -323,6 +334,7 @@ The operator provides:
 ### Model Recommendations by Instance
 
 - **g4dn.xlarge**: Qwen3-VL-Embedding-2B, sentence-transformers, small 7B models
+- **g5.2xlarge**: Granite 7B, Llama 3 8B, general inference (A10G 24GB)
 - **g6.2xlarge**: Granite 7B, Qwen3-VL-4B, general inference workloads
 - **g6.4xlarge**: Qwen3-VL-8B, Llama 3 8B, vision models, high-throughput scenarios
 
@@ -409,6 +421,9 @@ kustomize build infra/gpu-machineset/aws/overlays/g4dn-xlarge | oc apply -f -
 
 # For g6.2xlarge
 kustomize build infra/gpu-machineset/aws/overlays/g6-2xlarge | oc apply -f -
+
+# For g5.2xlarge
+kustomize build infra/gpu-machineset/aws/overlays/g5-2xlarge | oc apply -f -
 
 # For g6.4xlarge
 kustomize build infra/gpu-machineset/aws/overlays/g6-4xlarge | oc apply -f -
