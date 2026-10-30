@@ -14,6 +14,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "3"
     storageclass.kubernetes.io/is-default-class: "false"
+    opendatahub.io/sc-config: '{"displayName":"{{ .Values.storageClass.name }}","isEnabled":true,"isDefault":false,"accessModeSettings":{"ReadWriteOnce":true,"ReadWriteMany":true}}'
 provisioner: efs.csi.aws.com
 parameters:
   provisioningMode: {{ .Values.storageClass.provisioningMode }}

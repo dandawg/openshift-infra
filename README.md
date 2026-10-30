@@ -50,9 +50,13 @@ openshift-infra-efs-aws
 
 The CLI automatically:
 1. Gathers cluster info (name, region, VPC)
-2. Provisions an EFS file system via a short-lived Job using `kube-system/aws-creds`
-3. Logs in to ArgoCD
-4. Creates and syncs the ArgoCD Application (EFS CSI operator + StorageClass)
+2. Resolves AWS credentials — uses the cluster's `kube-system/aws-creds` secret if present, otherwise prompts you for an AWS Access Key ID and Secret Access Key (press Enter to use `~/.aws/credentials`). Credentials are validated and checked against the cluster's AWS account before use.
+3. Provisions an EFS file system via a short-lived Job in the cluster
+4. Creates EFS CSI driver credential secrets (if the CCO can't mint them)
+5. Logs in to ArgoCD
+6. Creates and syncs the ArgoCD Application (EFS CSI operator + StorageClass)
+
+The `efs-csi` StorageClass is pre-configured for **ReadWriteMany (RWX)** in RHOAI Storage Classes settings.
 
 ### Reuse an existing EFS file system
 
