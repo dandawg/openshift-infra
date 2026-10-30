@@ -1,4 +1,5 @@
 import configparser
+import getpass
 import json
 import os
 import random
@@ -252,7 +253,7 @@ def _prompt_and_validate_credentials(
     sk = ""
     source = ""
     if ak:
-        sk = input("  AWS Secret Access Key : ").strip()
+        sk = getpass.getpass("  AWS Secret Access Key : ").strip()
         if not sk:
             raise SystemExit("Error: Secret access key cannot be empty when access key is provided.")
         source = "user input"

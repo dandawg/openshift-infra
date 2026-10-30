@@ -2,7 +2,7 @@
 
 Adds **ReadWriteMany (RWX)** volumes on AWS using **EFS** and the **AWS EFS CSI Driver Operator** (Red Hat Operators catalog).
 
-- **GitOps / automated:** from repo root run `uv run ./infra/efs/aws/deploy.py` (see main [README](../../../README.md)). That CLI creates an EFS file system in your VPC using **`kube-system/aws-creds`** (see Prerequisites below), then applies and syncs the Argo CD app **`efs-aws`** that installs the operator subscription, `ClusterCSIDriver`, and a `StorageClass`.
+- **GitOps / automated:** from repo root run `openshift-infra-efs-aws` (see main [README](../../../README.md)). The CLI creates an EFS file system in your VPC, then applies and syncs the Argo CD app **`efs-aws`** that installs the operator subscription, `ClusterCSIDriver`, and a `StorageClass`.
 - **List existing `fs-…` IDs without the AWS console:** `./infra/efs/aws/list-efs.sh` (default: EFS with mount targets in the cluster VPC). Use `LIST_EFS_SCOPE=region` to print every EFS in the region.
 - **This document:** manual steps if you prefer not to use the deploy CLI, or to troubleshoot.
 
@@ -12,7 +12,15 @@ Adds **ReadWriteMany (RWX)** volumes on AWS using **EFS** and the **AWS EFS CSI 
 - Cluster admin (`oc` authenticated).
 - **OpenShift GitOps** installed (e.g. `./bootstrap.sh` from repo root).
 - `argocd` CLI (for GitOps path).
-- AWS API access from the cluster: the bootstrap flow uses the **`aws-creds`** secret in **`kube-system`** (the sandbox/installer `student` admin user), which has `elasticfilesystem:*` and `ec2:*` permissions. The `openshift-machine-api/aws-cloud-credentials` secret is intentionally scoped to EC2/machine operations only and **cannot** create EFS resources.
+- **AWS credentials** with `elasticfilesystem:*` and `ec2:*` permissions for the AWS account that owns the cluster's VPC. The CLI will use these credentials in one of two ways:
+  - **Cluster secret (`kube-system/aws-creds`):** If this secret exists (e.g. on IPI clusters with `Mint` mode CCO), it is used automatically with no prompts.
+  - **Interactive prompt:** If the secret is missing (e.g. OPENTLC/RHDP sandbox clusters), the CLI prompts for an AWS Access Key ID and Secret Access Key. Press Enter without typing to fall back to `~/.aws/credentials`. Credentials are validated and the AWS account is checked against the cluster before use.
+
+> **Note:** The `openshift-machine-api/aws-cloud-credentials` secret is scoped to EC2/machine operations only and **cannot** create EFS resources.
+
+### RHOAI
+
+The `efs-csi` StorageClass is created with the `opendatahub.io/sc-config` annotation so it appears as **RWX-enabled** in RHOAI Settings > Storage Classes automatically.
 
 ## Manual option 1: GitOps only (existing EFS)
 
