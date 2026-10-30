@@ -40,7 +40,9 @@ Run either with `--help` to see all options. You're now ready to deploy any comp
 
 Deploys the **AWS EFS CSI Driver Operator**, creates an EFS file system in your cluster's VPC, and creates a `StorageClass` (default `efs-csi`) for **ReadWriteMany** PVCs.
 
-> **Prerequisite:** Run [Getting Started](#getting-started) first (`./bootstrap.sh`, `uv sync`, `source .venv/bin/activate`).
+> **Prerequisites:**
+> - Run [Getting Started](#getting-started) first (`./bootstrap.sh`, `uv sync`, `source .venv/bin/activate`).
+> - **AWS credentials** for the account that owns the cluster's VPC, with `ec2:*` and `elasticfilesystem:*` permissions. Either run `aws configure` beforehand, or have the Access Key ID and Secret Access Key ready to paste when prompted. (On clusters that already have a `kube-system/aws-creds` secret, no additional credentials are needed.)
 
 ### Quick deploy
 
